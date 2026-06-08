@@ -38,7 +38,7 @@ Contribution rules:
 Public health data should be handled carefully. Changes must avoid silently
 mislabeling weeks, dates, regions, or metrics when the upstream page changes.
 
-## What We Will Not Merge For Now
+## What We Will Not Merge (For Now)
 
 - Live-only tests as the default quality gate
 - Generated data dumps without provenance
