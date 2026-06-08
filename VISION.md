@@ -44,3 +44,6 @@ mislabeling weeks, dates, regions, or metrics when the upstream page changes.
 - Generated data dumps without provenance
 - Parser rewrites without fixture coverage
 - Claims of current CDC compatibility without verification
+
+This list is a roadmap guardrail, not a permanent rule.
+Strong user demand and strong technical rationale can change it.
