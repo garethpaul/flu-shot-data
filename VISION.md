@@ -35,6 +35,11 @@ Contribution rules:
 
 ## Security And Responsible Use
 
+Canonical security policy and reporting:
+
+- [`SECURITY.md`](SECURITY.md)
+
+
 Public health data should be handled carefully. Changes must avoid silently
 mislabeling weeks, dates, regions, or metrics when the upstream page changes.
 
