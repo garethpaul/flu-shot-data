@@ -1,5 +1,8 @@
 ## Flu Shot Data Vision
 
+This document explains the current state and direction of the project.
+Project overview and developer docs: [`README.md`](README.md)
+
 Flu Shot Data is a Python 2-era scraper that reads CDC weekly flu summary data
 and writes `flu.csv` and `flu.json`.
 
