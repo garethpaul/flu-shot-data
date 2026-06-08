@@ -9,7 +9,7 @@ def run(verbose=True):
     """
     Scrapes the weekly "National and Regional Summary of Select
     Surveillance Components" table from the Centers for Disease
-    Control's flu summary site at http://www.cdc.gov/flu/weekly/
+    Control's flu summary site at https://www.cdc.gov/flu/weekly/
 
     Exports data to comma-delimited text and json file.
 
@@ -37,7 +37,7 @@ def run(verbose=True):
     # open url
     if verbose:
         print "Opening url ..."
-    url = "http://www.cdc.gov/flu/weekly/"
+    url = "https://www.cdc.gov/flu/weekly/"
     br.open(url)
     html = br.response().read()
     soup = BeautifulSoup(html)
