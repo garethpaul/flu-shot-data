@@ -69,4 +69,4 @@ Keep changes small and tied to the project that is already present in this repos
 
 Prior README summary:
 
-> flu-shot-data <!-- README-OVERVIEW-IMAGE --> This outputs flushot data to CSV.
+> flu-shot-data This outputs flushot data to CSV.
