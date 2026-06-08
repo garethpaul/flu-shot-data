@@ -33,7 +33,7 @@ Contribution rules:
 - Use small HTML fixtures for parser tests.
 - Keep generated outputs separate from code changes unless reviewed as data.
 
-## Data Quality
+## Security And Responsible Use
 
 Public health data should be handled carefully. Changes must avoid silently
 mislabeling weeks, dates, regions, or metrics when the upstream page changes.
