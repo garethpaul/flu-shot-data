@@ -1,5 +1,8 @@
 # flu-shot-data
 
+<!-- README-OVERVIEW-IMAGE -->
+![Project overview](docs/readme-overview.svg)
+
 ## Overview
 
 `garethpaul/flu-shot-data` is a public sample, documentation, or utility project. Flu Shot Data to CSV
@@ -67,4 +70,3 @@ Keep changes small and tied to the project that is already present in this repos
 Prior README summary:
 
 > flu-shot-data <!-- README-OVERVIEW-IMAGE --> This outputs flushot data to CSV.
-
