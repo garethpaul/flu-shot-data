@@ -7,26 +7,34 @@
 
 `garethpaul/flu-shot-data` is a public sample, documentation, or utility project. Flu Shot Data to CSV
 
-This README is based on the checked-in source, manifests, scripts, and repository metadata on the `master` branch. The project language mix found during review was: Python (1).
+This repository contains a small Python 3 scraper for the CDC weekly flu summary
+page. It parses the national and regional summary table and writes `flu.csv`
+and `flu.json`.
 
 ## Repository Contents
 
 - `README.md` - project overview and local usage notes
+- `CHANGES.md` - concise history of maintenance changes
+- `Makefile` - local verification entry point
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
+- `flushot.py` - Python 3 scraper, parser, and output writer
+- `scripts/check-baseline.sh` - offline syntax, unit, and static baseline checks
+- `tests/` - fixture-based tests for parser and output schema behavior
 
 Additional scan context:
 
-- Source directories: no top-level source directories detected
+- Source directories: tests
 - Dependency and build manifests: none detected
-- Entry points or build surfaces: none detected
-- Test-looking files: no obvious test files detected
+- Entry points or build surfaces: flushot.py
+- Test-looking files: tests/test_flushot.py
 
 ## Getting Started
 
 ### Prerequisites
 
 - Git
+- Python 3.10 or newer
 
 ### Setup
 
@@ -35,17 +43,33 @@ git clone https://github.com/garethpaul/flu-shot-data.git
 cd flu-shot-data
 ```
 
-The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
+No third-party Python dependencies are required for the current baseline.
 
 ## Running or Using the Project
 
-- No single runtime entry point was identified. Start by reading the source files and manifests listed above.
+Generate `flu.csv` and `flu.json` from the CDC weekly flu summary page:
+
+```bash
+python3 flushot.py
+```
+
+Generated data files are ignored by default. Commit generated outputs only when
+the data provenance and source date are reviewed.
 
 ## Testing and Verification
 
-- No dedicated automated test command was identified from the checked-in files. Verify changes by running the relevant build or manually exercising the sample.
+Run the offline baseline:
 
-When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
+```bash
+make check
+```
+
+The baseline compiles the Python files, runs fixture-based unit tests, and
+checks that the scraper stays Python 3 compatible, uses HTTPS, and keeps
+fetching, parsing, and writing separated.
+
+Fixture tests do not prove that the current live CDC page still has compatible
+markup. Validate live scraping separately before publishing current data.
 
 ## Configuration and Secrets
 
@@ -58,6 +82,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 ## Maintenance Notes
 
+- Run `make check` before pushing parser, output schema, or documentation changes.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

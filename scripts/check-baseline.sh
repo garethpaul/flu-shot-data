@@ -1,0 +1,81 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+PLAN="$ROOT_DIR/docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"
+PYTHON=${PYTHON:-python3}
+
+cleanup_bytecode() {
+  find "$ROOT_DIR" -maxdepth 3 -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+  find "$ROOT_DIR" -maxdepth 3 -type f -name "*.pyc" -delete 2>/dev/null || true
+}
+
+trap cleanup_bytecode EXIT
+cleanup_bytecode
+
+require_file() {
+  path=$1
+  if [ ! -f "$ROOT_DIR/$path" ]; then
+    printf '%s\n' "Required file missing: $path" >&2
+    exit 1
+  fi
+}
+
+for path in \
+  ".gitignore" \
+  "CHANGES.md" \
+  "Makefile" \
+  "README.md" \
+  "SECURITY.md" \
+  "VISION.md" \
+  "flushot.py" \
+  "tests/test_flushot.py" \
+  "tests/fixtures/cdc_weekly_summary.html" \
+  "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
+  require_file "$path"
+done
+
+"$PYTHON" -m py_compile "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py"
+"$PYTHON" -m unittest discover -s "$ROOT_DIR/tests" -p "test*.py"
+
+if grep -Eq 'mechanize|cookielib|simplejson|BeautifulSoup|print ' "$ROOT_DIR/flushot.py" ||
+  grep -Fq "http://www.cdc.gov/flu/weekly/" "$ROOT_DIR/flushot.py"; then
+  printf '%s\n' "Scraper must stay Python 3 compatible and use the HTTPS CDC URL." >&2
+  exit 1
+fi
+
+if ! grep -Fq "parse_records" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "write_outputs" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "fetch_html" "$ROOT_DIR/flushot.py"; then
+  printf '%s\n' "Scraper must keep fetch, parse, and write concerns separated." >&2
+  exit 1
+fi
+
+if ! grep -Fq "make check" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "fixture-based" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "flu.csv" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "flu.json" "$ROOT_DIR/README.md"; then
+  printf '%s\n' "README must document verification and generated outputs." >&2
+  exit 1
+fi
+
+if ! grep -Fq "scripts/check-baseline.sh" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "Python 3" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "fixture-based tests" "$ROOT_DIR/VISION.md"; then
+  printf '%s\n' "VISION must describe the current Python 3 parser baseline." >&2
+  exit 1
+fi
+
+if ! grep -Fq "flu.csv" "$ROOT_DIR/.gitignore" ||
+  ! grep -Fq "flu.json" "$ROOT_DIR/.gitignore" ||
+  ! grep -Fq "__pycache__/" "$ROOT_DIR/.gitignore"; then
+  printf '%s\n' "Generated outputs and Python caches must stay ignored." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$PLAN"; then
+  printf '%s\n' "Plan must be marked completed." >&2
+  exit 1
+fi
+
+printf '%s\n' "flu-shot-data Python baseline checks passed."

@@ -1,0 +1,14 @@
+# Generated scraper outputs
+flu.csv
+flu.json
+
+# Python local state
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local configuration
+.env
+.env.*

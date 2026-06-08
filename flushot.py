@@ -1,116 +1,188 @@
-import re
+#!/usr/bin/env python3
+"""Fetch CDC weekly flu summary data and write CSV/JSON outputs."""
+
+from __future__ import annotations
+
 import csv
-import mechanize
-import cookielib
-import simplejson
-from BeautifulSoup import BeautifulSoup
+import json
+import re
+from html.parser import HTMLParser
+from pathlib import Path
+from typing import Dict, Iterable, List
+from urllib.request import Request, urlopen
 
-def run(verbose=True):
-    """
-    Scrapes the weekly "National and Regional Summary of Select
-    Surveillance Components" table from the Centers for Disease
-    Control's flu summary site at http://www.cdc.gov/flu/weekly/
 
-    Exports data to comma-delimited text and json file.
+CDC_FLU_URL = "https://www.cdc.gov/flu/weekly/"
 
-    Example usage:
+HEADERS = [
+    "WEEK_NUM",
+    "WEEK_END",
+    "HHS_REGION",
+    "OUTPATIENT_ILI",
+    "PCT_FLU_POS",
+    "NUM_JURIS",
+    "A_H3",
+    "A_2009_H1N1",
+    "A_NO_SUBTYPE",
+    "B",
+    "PED_DEATHS",
+]
 
-        >>> import fluscrape
-        >>> fluscrape.run()
-        
-        $ python fluscrape.py
-    """
+
+class FluSummaryTableParser(HTMLParser):
+    """Extract rows from the CDC summary table used by the original scraper."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._in_target_table = False
+        self._table_depth = 0
+        self._in_row = False
+        self._in_cell = False
+        self._current_row: List[str] = []
+        self._current_cell: List[str] = []
+        self.rows: List[List[str]] = []
+
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, str | None]]) -> None:
+        attr_map = dict(attrs)
+        if tag == "table":
+            if self._in_target_table:
+                self._table_depth += 1
+            elif attr_map.get("cellpadding") == "3":
+                self._in_target_table = True
+                self._table_depth = 1
+
+        if not self._in_target_table:
+            return
+
+        if tag == "tr":
+            self._in_row = True
+            self._current_row = []
+        elif tag in {"td", "th"} and self._in_row:
+            self._in_cell = True
+            self._current_cell = []
+
+    def handle_data(self, data: str) -> None:
+        if self._in_target_table and self._in_cell:
+            self._current_cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self._in_target_table:
+            return
+
+        if tag in {"td", "th"} and self._in_cell:
+            cell = " ".join("".join(self._current_cell).split())
+            self._current_row.append(cell)
+            self._current_cell = []
+            self._in_cell = False
+        elif tag == "tr" and self._in_row:
+            if self._current_row:
+                self.rows.append(self._current_row)
+            self._current_row = []
+            self._in_row = False
+        elif tag == "table":
+            self._table_depth -= 1
+            if self._table_depth == 0:
+                self._in_target_table = False
+
+
+def fetch_html(url: str = CDC_FLU_URL, timeout: int = 30) -> str:
+    request = Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (compatible; flu-shot-data/1.0; "
+                "+https://github.com/garethpaul/flu-shot-data)"
+            )
+        },
+    )
+    with urlopen(request, timeout=timeout) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
+def parse_week_metadata(html: str) -> tuple[str, str]:
+    week_num_match = re.search(r"Influenza Season Week (\d{1,2})", html)
+    week_end_match = re.search(
+        r"ending ((January|February|March|April|May|June|July|August|September|October|November|December) "
+        r"\d{1,2}, \d{4})",
+        html,
+    )
+
+    if not week_num_match or not week_end_match:
+        raise ValueError("Could not find flu week number and ending date in CDC HTML.")
+
+    return week_num_match.group(1), week_end_match.group(1)
+
+
+def parse_records(html: str) -> List[Dict[str, str]]:
+    week_num, week_end = parse_week_metadata(html)
+    parser = FluSummaryTableParser()
+    parser.feed(html)
+
+    if not parser.rows:
+        raise ValueError("Could not find CDC summary table with cellpadding=3.")
+
+    records: List[Dict[str, str]] = []
+    for row in parser.rows[2:]:
+        if len(row) < 9:
+            continue
+
+        values = [
+            week_num,
+            week_end,
+            row[0],
+            row[1],
+            row[2].rstrip("%"),
+            row[3],
+            row[4],
+            row[5],
+            row[6],
+            row[7],
+            row[8],
+        ]
+        records.append(dict(zip(HEADERS, values)))
+
+    if not records:
+        raise ValueError("CDC summary table did not contain parseable region rows.")
+
+    return records
+
+
+def write_outputs(
+    records: Iterable[Dict[str, str]],
+    csv_path: str | Path = "flu.csv",
+    json_path: str | Path = "flu.json",
+) -> None:
+    records = list(records)
+
+    with Path(csv_path).open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=HEADERS)
+        writer.writeheader()
+        writer.writerows(records)
+
+    with Path(json_path).open("w", encoding="utf-8") as json_file:
+        json.dump(records, json_file, indent=4)
+        json_file.write("\n")
+
+
+def run(
+    verbose: bool = True,
+    url: str = CDC_FLU_URL,
+    csv_path: str | Path = "flu.csv",
+    json_path: str | Path = "flu.json",
+    html: str | None = None,
+) -> List[Dict[str, str]]:
+    if verbose:
+        print("Fetching CDC flu summary data ...")
+
+    source_html = html if html is not None else fetch_html(url)
+    records = parse_records(source_html)
+    write_outputs(records, csv_path=csv_path, json_path=json_path)
 
     if verbose:
-        print 'Initializing ...'
+        print(f"Wrote {len(records)} rows to {csv_path} and {json_path}.")
 
-    # prep browser
-    br = mechanize.Browser()
-    # tell it to ignore robots.txt
-    br.set_handle_robots(False)
-    # add cookie capabilities if needed
-    cj = cookielib.LWPCookieJar()
-    br.set_cookiejar(cj)
-    # Use Chrome browser headers
-    br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/14.0.835.202 Safari/535.1')]
-
-    # open url
-    if verbose:
-        print "Opening url ..."
-    url = "http://www.cdc.gov/flu/weekly/"
-    br.open(url)
-    html = br.response().read()
-    soup = BeautifulSoup(html)
-
-    # open and prep outfile
-    outfile = open('flu.csv', 'wb') 
-    outwriter = csv.writer(outfile, delimiter=",")
-    headers = [
-        'WEEK_NUM', 'WEEK_END', 'HHS_REGION', 'OUTPATIENT_ILI', 'PCT_FLU_POS',
-        'NUM_JURIS', 'A_H3', 'A_2009_H1N1', 'A_NO_SUBTYPE', 'B', 'PED_DEATHS'
-    ]
-    outwriter.writerow(headers)
-
-    # use regex to find the week number
-    week_num_text = re.search(r'Influenza Season Week \d{1,2}', html)
-    week_num = week_num_text.group()
-    week_num = re.sub('Influenza Season Week ', '', week_num)
-    if verbose:
-        print 'Found week number ' + week_num
-
-    # use regex to find the week ending date
-    week_end_text = re.search(r'ending (January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}, \d{4}', html)
-    week_end = week_end_text.group()
-    week_end = re.sub('ending ', '', week_end)
-    if verbose:
-        print 'Found week ending ' + week_end
-
-    # locate and parse table
-    if verbose:
-        print 'Parsing table ...'
-
-    table = soup.find("table", cellpadding=3)
-
-    # go get the data
-    row_counter = 1
-    for row in table.findAll('tr')[2:]:
-        name = row.findAll('strong')
-        region = name[0].string
-        col = row.findAll('td')
-        ili = col[1].string
-        pct = col[2].string.strip('%')
-        num_juris = col[3].string
-        a_h3 = col[4].string
-        a_2009_h1n1 = col[5].string
-        a_no_subtype = col[6].string
-        b = col[7].string
-        ped_deaths = col[8].string
-        parsed_row = (
-            week_num, week_end, region, ili, pct, num_juris, a_h3, a_2009_h1n1, 
-            a_no_subtype, b, ped_deaths
-        )
-        if verbose:
-            print 'Printing row ' + str(row_counter)
-        outwriter.writerow(parsed_row)
-        row_counter += 1
-
-    outfile.close()
-
-    # reopen CSV data
-    infile = open('flu.csv', 'r')
-    data = csv.DictReader(infile)
-    # convert to JSON
-    json = simplejson.dumps(list(data), indent=4)
-    # write to file
-    jsonfile = open("flu.json", "w")
-    jsonfile.write(json)
-    jsonfile.close()
-    infile.close()
-
-    # wrap up
-    if verbose:
-        print 'All done!'
+    return records
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
