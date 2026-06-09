@@ -150,7 +150,7 @@ def parse_records(html: str) -> List[Dict[str, str]]:
         raise ValueError("CDC summary table did not contain expected flu summary headers.")
 
     records: List[Dict[str, str]] = []
-    for row in parser.rows[2:]:
+    for row in parser.rows[1:]:
         if len(row) < 9:
             continue
 
