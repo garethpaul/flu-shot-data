@@ -27,6 +27,18 @@ class FluShotParserTests(unittest.TestCase):
 
         self.assertEqual("12.5", records[0]["PCT_FLU_POS"])
 
+    def test_parse_records_without_subheading_keeps_first_region(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace(
+            "      <tr>\n"
+            "        <th colspan=\"9\">National and Regional Summary</th>\n"
+            "      </tr>\n",
+            "",
+        )
+        records = flushot.parse_records(html)
+
+        self.assertEqual(2, len(records))
+        self.assertEqual("National", records[0]["HHS_REGION"])
+
     def test_write_outputs_uses_expected_schema(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 

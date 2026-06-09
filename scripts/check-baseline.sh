@@ -5,6 +5,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 PLAN="$ROOT_DIR/docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"
 PERCENT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-percent-normalization.md"
 HEADER_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-header-guard.md"
+SUBHEADING_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-optional-subheading.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -33,6 +34,7 @@ for path in \
   "flushot.py" \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
+  "docs/plans/2026-06-09-flu-shot-optional-subheading.md" \
   "docs/plans/2026-06-09-flu-shot-summary-header-guard.md" \
   "docs/plans/2026-06-09-flu-shot-percent-normalization.md" \
   "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
@@ -71,6 +73,12 @@ fi
 if ! grep -Fq "test_parse_records_fails_when_summary_header_is_missing" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "Unexpected metric" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Tests must cover malformed CDC summary table headers." >&2
+  exit 1
+fi
+
+if ! grep -Fq "for row in parser.rows[1:]" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_parse_records_without_subheading_keeps_first_region" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Parser must not require an extra non-data subheading row before region rows." >&2
   exit 1
 fi
 
@@ -118,6 +126,11 @@ fi
 
 if ! grep -Fq "status: completed" "$HEADER_PLAN"; then
   printf '%s\n' "Summary header guard plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$SUBHEADING_PLAN"; then
+  printf '%s\n' "Optional subheading plan must be marked completed." >&2
   exit 1
 fi
 

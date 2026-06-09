@@ -29,6 +29,8 @@ Current baseline:
 - Fetching, parsing, and output writing are separate functions in `flushot.py`.
 - The CDC URL uses HTTPS.
 - The parser validates expected CDC summary table headers before emitting rows.
+- Summary subheading rows are optional; the parser starts after the header row
+  and skips short non-data rows.
 - Percent-positive cells are normalized without a trailing percent sign or
   extra spacing.
 - `flu.csv` and `flu.json` are treated as generated outputs unless intentionally
@@ -38,6 +40,7 @@ Next priorities:
 
 - Validate the parser against the current live CDC page before publishing generated data
 - Keep expected CDC summary table headers visible when upstream markup changes
+- Keep optional summary subheading behavior covered by fixtures
 - Add provenance metadata if generated outputs are intentionally committed
 - Update source URLs if CDC structure changes
 

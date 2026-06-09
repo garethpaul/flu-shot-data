@@ -2,6 +2,8 @@
 
 ## 2026-06-08
 
+- Made the optional CDC summary subheading row non-required so the first region
+  row is preserved when the subheading is absent.
 - Ported the CDC flu summary scraper from Python 2-era dependencies to Python 3
   standard-library code.
 - Added fixture-based tests for parser and output schema behavior.
