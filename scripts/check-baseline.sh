@@ -4,6 +4,7 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 PLAN="$ROOT_DIR/docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"
 PERCENT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-percent-normalization.md"
+HEADER_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-header-guard.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -32,6 +33,7 @@ for path in \
   "flushot.py" \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
+  "docs/plans/2026-06-09-flu-shot-summary-header-guard.md" \
   "docs/plans/2026-06-09-flu-shot-percent-normalization.md" \
   "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
   require_file "$path"
@@ -59,6 +61,19 @@ if ! grep -Fq "def normalize_percent" "$ROOT_DIR/flushot.py" ||
   exit 1
 fi
 
+if ! grep -Fq "EXPECTED_TABLE_HEADERS" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "def has_expected_summary_header" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "expected flu summary headers" "$ROOT_DIR/flushot.py"; then
+  printf '%s\n' "Parser must validate the expected CDC summary table headers." >&2
+  exit 1
+fi
+
+if ! grep -Fq "test_parse_records_fails_when_summary_header_is_missing" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "Unexpected metric" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Tests must cover malformed CDC summary table headers." >&2
+  exit 1
+fi
+
 if ! grep -Fq "test_parse_records_trims_percent_spacing" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq " 12.5 % " "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Tests must cover percent-positive cells with spaced percent signs." >&2
@@ -67,6 +82,7 @@ fi
 
 if ! grep -Fq "make check" "$ROOT_DIR/README.md" ||
   ! grep -Fq "fixture-based" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "expected flu summary headers" "$ROOT_DIR/README.md" ||
   ! grep -Fq "space before the percent sign" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.csv" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.json" "$ROOT_DIR/README.md"; then
@@ -76,6 +92,7 @@ fi
 
 if ! grep -Fq "scripts/check-baseline.sh" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Python 3" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "expected CDC summary table headers" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Percent-positive cells are normalized" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "fixture-based tests" "$ROOT_DIR/VISION.md"; then
   printf '%s\n' "VISION must describe the current Python 3 parser and percent normalization baseline." >&2
@@ -96,6 +113,11 @@ fi
 
 if ! grep -Fq "status: completed" "$PERCENT_PLAN"; then
   printf '%s\n' "Percent normalization plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$HEADER_PLAN"; then
+  printf '%s\n' "Summary header guard plan must be marked completed." >&2
   exit 1
 fi
 

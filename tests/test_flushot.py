@@ -47,6 +47,14 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "week number and ending date"):
             flushot.parse_records("<html><table cellpadding='3'></table></html>")
 
+    def test_parse_records_fails_when_summary_header_is_missing(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace(
+            "<th>Percent positive</th>", "<th>Unexpected metric</th>"
+        )
+
+        with self.assertRaisesRegex(ValueError, "expected flu summary headers"):
+            flushot.parse_records(html)
+
 
 if __name__ == "__main__":
     unittest.main()

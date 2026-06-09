@@ -28,6 +28,7 @@ Current baseline:
   fixture-based tests, generated-output ignores, and static parser guardrails.
 - Fetching, parsing, and output writing are separate functions in `flushot.py`.
 - The CDC URL uses HTTPS.
+- The parser validates expected CDC summary table headers before emitting rows.
 - Percent-positive cells are normalized without a trailing percent sign or
   extra spacing.
 - `flu.csv` and `flu.json` are treated as generated outputs unless intentionally
@@ -36,6 +37,7 @@ Current baseline:
 Next priorities:
 
 - Validate the parser against the current live CDC page before publishing generated data
+- Keep expected CDC summary table headers visible when upstream markup changes
 - Add provenance metadata if generated outputs are intentionally committed
 - Update source URLs if CDC structure changes
 

@@ -28,6 +28,18 @@ HEADERS = [
     "PED_DEATHS",
 ]
 
+EXPECTED_TABLE_HEADERS = [
+    "Region",
+    "ILI",
+    "Percent positive",
+    "Jurisdictions",
+    "A H3",
+    "A 2009 H1N1",
+    "A no subtype",
+    "B",
+    "Ped deaths",
+]
+
 
 class FluSummaryTableParser(HTMLParser):
     """Extract rows from the CDC summary table used by the original scraper."""
@@ -117,6 +129,15 @@ def normalize_percent(value: str) -> str:
     return value.strip().rstrip("%").strip()
 
 
+def has_expected_summary_header(rows: List[List[str]]) -> bool:
+    if not rows:
+        return False
+
+    expected = [header.lower() for header in EXPECTED_TABLE_HEADERS]
+    actual = [cell.lower() for cell in rows[0][: len(EXPECTED_TABLE_HEADERS)]]
+    return actual == expected
+
+
 def parse_records(html: str) -> List[Dict[str, str]]:
     week_num, week_end = parse_week_metadata(html)
     parser = FluSummaryTableParser()
@@ -124,6 +145,9 @@ def parse_records(html: str) -> List[Dict[str, str]]:
 
     if not parser.rows:
         raise ValueError("Could not find CDC summary table with cellpadding=3.")
+
+    if not has_expected_summary_header(parser.rows):
+        raise ValueError("CDC summary table did not contain expected flu summary headers.")
 
     records: List[Dict[str, str]] = []
     for row in parser.rows[2:]:

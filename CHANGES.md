@@ -10,3 +10,5 @@
 - Ignored generated CSV/JSON outputs and Python cache artifacts.
 - Normalized percent-positive values with spaced percent signs in CDC table
   cells.
+- Added a CDC summary header guard so parser mismatches fail before data rows
+  are emitted.
