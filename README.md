@@ -66,7 +66,8 @@ make check
 
 The baseline compiles the Python files, runs fixture-based unit tests, and
 checks that the scraper stays Python 3 compatible, uses HTTPS, and keeps
-fetching, parsing, and writing separated.
+fetching, parsing, and writing separated. The parser tests also cover CDC
+percent-positive cells that include a space before the percent sign.
 
 Fixture tests do not prove that the current live CDC page still has compatible
 markup. Validate live scraping separately before publishing current data.
@@ -85,6 +86,8 @@ markup. Validate live scraping separately before publishing current data.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
+- See `docs/plans/2026-06-09-flu-shot-percent-normalization.md` for the
+  percent field normalization contract.
 
 ## Contributing
 

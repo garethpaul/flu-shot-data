@@ -21,6 +21,12 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual("12.5", records[0]["PCT_FLU_POS"])
         self.assertEqual("Region 1", records[1]["HHS_REGION"])
 
+    def test_parse_records_trims_percent_spacing(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace("12.5%", " 12.5 % ")
+        records = flushot.parse_records(html)
+
+        self.assertEqual("12.5", records[0]["PCT_FLU_POS"])
+
     def test_write_outputs_uses_expected_schema(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 

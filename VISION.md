@@ -28,6 +28,8 @@ Current baseline:
   fixture-based tests, generated-output ignores, and static parser guardrails.
 - Fetching, parsing, and output writing are separate functions in `flushot.py`.
 - The CDC URL uses HTTPS.
+- Percent-positive cells are normalized without a trailing percent sign or
+  extra spacing.
 - `flu.csv` and `flu.json` are treated as generated outputs unless intentionally
   reviewed as data artifacts.
 

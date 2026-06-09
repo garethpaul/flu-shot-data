@@ -8,3 +8,5 @@
 - Added `make check` and `scripts/check-baseline.sh` for repeatable offline
   verification.
 - Ignored generated CSV/JSON outputs and Python cache artifacts.
+- Normalized percent-positive values with spaced percent signs in CDC table
+  cells.

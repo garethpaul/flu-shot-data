@@ -113,6 +113,10 @@ def parse_week_metadata(html: str) -> tuple[str, str]:
     return week_num_match.group(1), week_end_match.group(1)
 
 
+def normalize_percent(value: str) -> str:
+    return value.strip().rstrip("%").strip()
+
+
 def parse_records(html: str) -> List[Dict[str, str]]:
     week_num, week_end = parse_week_metadata(html)
     parser = FluSummaryTableParser()
@@ -131,7 +135,7 @@ def parse_records(html: str) -> List[Dict[str, str]]:
             week_end,
             row[0],
             row[1],
-            row[2].rstrip("%"),
+            normalize_percent(row[2]),
             row[3],
             row[4],
             row[5],
