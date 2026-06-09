@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Rejected embedded credentials in live CDC fetch URLs before opening network
+  requests.
 - Limited live fetch URLs to `cdc.gov` or CDC subdomains before opening
   network requests.
 - Added fetch URL validation so live requests require HTTPS URLs with hosts,

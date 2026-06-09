@@ -30,6 +30,8 @@ Helpful reports include:
 - Fetch URLs should remain HTTPS URLs with explicit hosts before network requests are opened.
 - Fetch hosts should remain limited to `cdc.gov` or CDC subdomains unless a
   reviewed source migration changes the data provenance boundary.
+- Fetch URLs should reject embedded credentials before network requests are
+  opened.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 

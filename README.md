@@ -67,8 +67,9 @@ make check
 The baseline compiles the Python files, runs fixture-based unit tests, and
 checks that the scraper stays Python 3 compatible, uses HTTPS, and keeps
 fetching, parsing, and writing separated. Fetch URLs are validated as HTTPS
-URLs with CDC-owned hostnames before any network request is opened. The parser
-tests also cover CDC percent-positive cells that include a space before the
+URLs with CDC-owned hostnames and no embedded credentials before any network
+request is opened. The parser tests also cover CDC percent-positive cells that
+include a space before the
 percent sign, and they fail when the expected flu summary headers are missing.
 They also cover unrelated legacy `cellpadding=3` tables before the expected
 summary table, and summary tables that omit the extra non-data subheading row
@@ -93,6 +94,8 @@ markup. Validate live scraping separately before publishing current data.
   rather than live network calls.
 - Keep live fetch hosts limited to `cdc.gov` or CDC subdomains unless a
   reviewed source migration changes the data provenance boundary.
+- Reject embedded credentials in live fetch URLs before opening network
+  requests.
 
 ## Maintenance Notes
 
@@ -113,6 +116,8 @@ markup. Validate live scraping separately before publishing current data.
   validation coverage.
 - See `docs/plans/2026-06-09-flu-shot-fetch-host-validation.md` for CDC host
   validation coverage.
+- See `docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md` for fetch URL
+  credential guard coverage.
 
 ## Contributing
 

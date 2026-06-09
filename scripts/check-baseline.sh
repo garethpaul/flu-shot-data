@@ -10,6 +10,7 @@ TABLE_SELECTION_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-table-selection.m
 SUMMARY_ROW_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-row-skip.md"
 FETCH_URL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-validation.md"
 FETCH_HOST_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-host-validation.md"
+FETCH_CREDENTIAL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -38,6 +39,7 @@ for path in \
   "flushot.py" \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
+  "docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-host-validation.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-validation.md" \
@@ -69,10 +71,13 @@ if ! grep -Fq "def validate_fetch_url" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "urlparse" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq 'parsed.scheme != "https"' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "not hostname" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "parsed.username is not None" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "parsed.password is not None" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq 'hostname != "cdc.gov"' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq 'not hostname.endswith(".cdc.gov")' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "validate_fetch_url(url)" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_validate_fetch_url_requires_https_with_host" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_validate_fetch_url_rejects_embedded_credentials" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "https://example.com/flu/weekly/" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Scraper must validate fetch URLs before opening network requests." >&2
   exit 1
@@ -131,6 +136,7 @@ if ! grep -Fq "make check" "$ROOT_DIR/README.md" ||
   ! grep -Fq "space before the" "$ROOT_DIR/README.md" ||
   ! grep -Fq "percent sign" "$ROOT_DIR/README.md" ||
   ! grep -Fq "CDC-owned hostnames" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "embedded credentials" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.csv" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.json" "$ROOT_DIR/README.md"; then
   printf '%s\n' "README must document verification, percent normalization, and generated outputs." >&2
@@ -142,6 +148,7 @@ if ! grep -Fq "scripts/check-baseline.sh" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "expected CDC summary table headers" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "matching summary table" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "CDC subdomains" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "embedded credentials" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Percent-positive cells are normalized" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "fixture-based tests" "$ROOT_DIR/VISION.md"; then
   printf '%s\n' "VISION must describe the current Python 3 parser and percent normalization baseline." >&2
@@ -192,6 +199,11 @@ fi
 
 if ! grep -Fq "status: completed" "$FETCH_HOST_PLAN"; then
   printf '%s\n' "Fetch host validation plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$FETCH_CREDENTIAL_PLAN"; then
+  printf '%s\n' "Fetch credential guard plan must be marked completed." >&2
   exit 1
 fi
 

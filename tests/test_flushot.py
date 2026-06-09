@@ -128,6 +128,10 @@ class FluShotParserTests(unittest.TestCase):
             flushot.validate_fetch_url("https://data.cdc.gov/flu/weekly/"),
         )
 
+    def test_validate_fetch_url_rejects_embedded_credentials(self):
+        with self.assertRaisesRegex(ValueError, "credentials"):
+            flushot.validate_fetch_url("https://user:pass@www.cdc.gov/flu/weekly/")
+
 
 if __name__ == "__main__":
     unittest.main()
