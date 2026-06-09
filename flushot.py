@@ -164,11 +164,17 @@ def parse_records(html: str) -> List[Dict[str, str]]:
     for row in summary_rows[1:]:
         if len(row) < 9:
             continue
+        if has_expected_summary_header([row]):
+            continue
+
+        region = row[0].strip()
+        if not region:
+            continue
 
         values = [
             week_num,
             week_end,
-            row[0],
+            region,
             row[1],
             normalize_percent(row[2]),
             row[3],

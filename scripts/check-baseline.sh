@@ -7,6 +7,7 @@ PERCENT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-percent-normalization.md"
 HEADER_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-header-guard.md"
 SUBHEADING_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-optional-subheading.md"
 TABLE_SELECTION_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-table-selection.md"
+SUMMARY_ROW_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-row-skip.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -35,6 +36,7 @@ for path in \
   "flushot.py" \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
+  "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
   "docs/plans/2026-06-09-flu-shot-optional-subheading.md" \
   "docs/plans/2026-06-09-flu-shot-table-selection.md" \
   "docs/plans/2026-06-09-flu-shot-summary-header-guard.md" \
@@ -77,6 +79,13 @@ if ! grep -Fq "test_parse_records_fails_when_summary_header_is_missing" "$ROOT_D
   ! grep -Fq "test_parse_records_skips_unrelated_matching_tables" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "Unexpected metric" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Tests must cover malformed and unrelated CDC summary table candidates." >&2
+  exit 1
+fi
+
+if ! grep -Fq "has_expected_summary_header([row])" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "region = row[0].strip()" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_parse_records_skips_repeated_header_and_blank_region_rows" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Parser must skip repeated summary headers and rows without a region value." >&2
   exit 1
 fi
 
@@ -141,6 +150,11 @@ fi
 
 if ! grep -Fq "status: completed" "$TABLE_SELECTION_PLAN"; then
   printf '%s\n' "Table selection plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$SUMMARY_ROW_PLAN"; then
+  printf '%s\n' "Summary row skip plan must be marked completed." >&2
   exit 1
 fi
 

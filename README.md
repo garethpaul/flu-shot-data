@@ -71,6 +71,8 @@ percent-positive cells that include a space before the percent sign and fail
 when the expected flu summary headers are missing. They also cover unrelated
 legacy `cellpadding=3` tables before the expected summary table, and summary
 tables that omit the extra non-data subheading row before regional data.
+Repeated header rows or blank-region rows inside the selected summary table are
+skipped before records are written.
 
 Fixture tests do not prove that the current live CDC page still has compatible
 markup. Validate live scraping separately before publishing current data.
@@ -97,6 +99,8 @@ markup. Validate live scraping separately before publishing current data.
   summary subheading handling.
 - See `docs/plans/2026-06-09-flu-shot-table-selection.md` for selecting the
   expected summary table when unrelated matching tables are present.
+- See `docs/plans/2026-06-09-flu-shot-summary-row-skip.md` for repeated header
+  and blank-region row handling.
 
 ## Contributing
 

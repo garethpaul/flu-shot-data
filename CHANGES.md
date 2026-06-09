@@ -4,6 +4,8 @@
 
 - Selected the first table with the expected CDC summary headers when unrelated
   `cellpadding=3` tables appear before the flu summary.
+- Skipped repeated summary headers and blank-region rows inside the selected
+  summary table.
 
 ## 2026-06-08
 
