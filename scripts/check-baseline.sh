@@ -12,6 +12,7 @@ FETCH_URL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-validation.md
 FETCH_HOST_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-host-validation.md"
 FETCH_CREDENTIAL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md"
 FETCH_URL_PARTS_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md"
+FETCH_TIMEOUT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -41,6 +42,7 @@ for path in \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
   "docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md" \
+  "docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-host-validation.md" \
@@ -84,6 +86,17 @@ if ! grep -Fq "def validate_fetch_url" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_validate_fetch_url_rejects_query_and_fragment" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "https://example.com/flu/weekly/" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Scraper must validate fetch URLs before opening network requests." >&2
+  exit 1
+fi
+
+if ! grep -Fq "def fetch_timeout" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "timeout_value = int(value)" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "1 <= timeout_value <= 300" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "timeout=fetch_timeout(timeout)" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_fetch_timeout_rejects_invalid_or_out_of_range_values" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "not-a-timeout" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "301" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Scraper must validate live fetch timeouts before opening network requests." >&2
   exit 1
 fi
 
@@ -141,6 +154,7 @@ if ! grep -Fq "make check" "$ROOT_DIR/README.md" ||
   ! grep -Fq "percent sign" "$ROOT_DIR/README.md" ||
   ! grep -Fq "CDC-owned hostnames" "$ROOT_DIR/README.md" ||
   ! grep -Fq "embedded credentials" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "fetch timeouts are bounded" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.csv" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.json" "$ROOT_DIR/README.md"; then
   printf '%s\n' "README must document verification, percent normalization, and generated outputs." >&2
@@ -154,6 +168,7 @@ if ! grep -Fq "scripts/check-baseline.sh" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "CDC subdomains" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "embedded credentials" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "query strings or fragments" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "timeout values are bounded" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Percent-positive cells are normalized" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "fixture-based tests" "$ROOT_DIR/VISION.md"; then
   printf '%s\n' "VISION must describe the current Python 3 parser and percent normalization baseline." >&2
@@ -219,6 +234,16 @@ fi
 
 if ! grep -Fq "make check" "$FETCH_URL_PARTS_PLAN"; then
   printf '%s\n' "Fetch URL parts guard plan must record make check verification." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$FETCH_TIMEOUT_PLAN"; then
+  printf '%s\n' "Fetch timeout validation plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "make check" "$FETCH_TIMEOUT_PLAN"; then
+  printf '%s\n' "Fetch timeout validation plan must record make check verification." >&2
   exit 1
 fi
 

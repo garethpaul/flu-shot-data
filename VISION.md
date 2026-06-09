@@ -35,6 +35,8 @@ Current baseline:
   opened.
 - Live fetch URLs reject query strings or fragments before network requests are
   opened.
+- Live fetch timeout values are bounded before `urlopen` is called, with
+  invalid values falling back to 30 seconds.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -61,6 +63,7 @@ Next priorities:
 - Keep fetch credential rejection covered when source URL handling changes
 - Keep fetch query and fragment rejection covered when source URL handling
   changes
+- Keep fetch timeout validation covered when live fetch behavior changes
 
 Contribution rules:
 

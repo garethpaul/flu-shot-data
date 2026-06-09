@@ -139,6 +139,13 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "query strings or fragments"):
             flushot.validate_fetch_url("https://www.cdc.gov/flu/weekly/#summary")
 
+    def test_fetch_timeout_rejects_invalid_or_out_of_range_values(self):
+        self.assertEqual(30, flushot.fetch_timeout(""))
+        self.assertEqual(30, flushot.fetch_timeout("not-a-timeout"))
+        self.assertEqual(30, flushot.fetch_timeout(0))
+        self.assertEqual(30, flushot.fetch_timeout(301))
+        self.assertEqual(45, flushot.fetch_timeout("45"))
+
 
 if __name__ == "__main__":
     unittest.main()

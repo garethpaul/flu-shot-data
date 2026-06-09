@@ -76,6 +76,8 @@ summary table, and summary tables that omit the extra non-data subheading row
 before regional data. Repeated header rows or blank-region rows inside the
 selected summary table are skipped before records are written.
 Live fetch URLs must not include query strings or fragments.
+Live fetch timeouts are bounded before `urlopen` is called; invalid or
+out-of-range timeout values fall back to 30 seconds.
 
 The `make lint`, `make test`, and `make build` aliases run the same offline
 baseline while this project has no narrower installed gates.
@@ -99,6 +101,8 @@ markup. Validate live scraping separately before publishing current data.
   requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source
   migration changes the provenance boundary.
+- Keep live fetch timeouts bounded so network requests do not use invalid or
+  excessive caller-provided values.
 
 ## Maintenance Notes
 
@@ -123,6 +127,8 @@ markup. Validate live scraping separately before publishing current data.
   credential guard coverage.
 - See `docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md` for fetch URL
   query and fragment guard coverage.
+- See `docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md` for live
+  fetch timeout validation coverage.
 
 ## Contributing
 

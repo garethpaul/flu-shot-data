@@ -119,6 +119,17 @@ def validate_fetch_url(url: str) -> str:
     return url
 
 
+def fetch_timeout(value: int | str = 30, default: int = 30) -> int:
+    try:
+        timeout_value = int(value)
+    except (TypeError, ValueError):
+        return default
+
+    if 1 <= timeout_value <= 300:
+        return timeout_value
+    return default
+
+
 def fetch_html(url: str = CDC_FLU_URL, timeout: int = 30) -> str:
     fetch_url = validate_fetch_url(url)
     request = Request(
@@ -130,7 +141,7 @@ def fetch_html(url: str = CDC_FLU_URL, timeout: int = 30) -> str:
             )
         },
     )
-    with urlopen(request, timeout=timeout) as response:
+    with urlopen(request, timeout=fetch_timeout(timeout)) as response:
         return response.read().decode("utf-8", errors="replace")
 
 

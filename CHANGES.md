@@ -2,6 +2,7 @@
 
 ## 2026-06-09
 
+- Bounded live CDC fetch timeout values before opening network requests.
 - Rejected query strings and fragments in live CDC fetch URLs before opening
   network requests.
 - Rejected embedded credentials in live CDC fetch URLs before opening network
