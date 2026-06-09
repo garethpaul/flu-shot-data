@@ -112,6 +112,8 @@ def validate_fetch_url(url: str) -> str:
         raise ValueError("CDC fetch URL must be an HTTPS URL with a host.")
     if parsed.username is not None or parsed.password is not None:
         raise ValueError("CDC fetch URL must not include credentials.")
+    if parsed.query or parsed.fragment:
+        raise ValueError("CDC fetch URL must not include query strings or fragments.")
     if hostname != "cdc.gov" and not hostname.endswith(".cdc.gov"):
         raise ValueError("CDC fetch URL host must be cdc.gov.")
     return url

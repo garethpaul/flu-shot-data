@@ -33,6 +33,8 @@ Current baseline:
   requests are opened.
 - Live fetch URLs reject embedded credentials before network requests are
   opened.
+- Live fetch URLs reject query strings or fragments before network requests are
+  opened.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -57,6 +59,8 @@ Next priorities:
 - Keep URL validation covered if alternate CDC source URLs are introduced
 - Keep source host validation reviewed when CDC URL provenance changes
 - Keep fetch credential rejection covered when source URL handling changes
+- Keep fetch query and fragment rejection covered when source URL handling
+  changes
 
 Contribution rules:
 

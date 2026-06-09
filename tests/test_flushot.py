@@ -132,6 +132,13 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "credentials"):
             flushot.validate_fetch_url("https://user:pass@www.cdc.gov/flu/weekly/")
 
+    def test_validate_fetch_url_rejects_query_and_fragment(self):
+        with self.assertRaisesRegex(ValueError, "query strings or fragments"):
+            flushot.validate_fetch_url("https://www.cdc.gov/flu/weekly/?source=sample")
+
+        with self.assertRaisesRegex(ValueError, "query strings or fragments"):
+            flushot.validate_fetch_url("https://www.cdc.gov/flu/weekly/#summary")
+
 
 if __name__ == "__main__":
     unittest.main()

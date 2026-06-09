@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Rejected query strings and fragments in live CDC fetch URLs before opening
+  network requests.
 - Rejected embedded credentials in live CDC fetch URLs before opening network
   requests.
 - Limited live fetch URLs to `cdc.gov` or CDC subdomains before opening

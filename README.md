@@ -75,6 +75,7 @@ They also cover unrelated legacy `cellpadding=3` tables before the expected
 summary table, and summary tables that omit the extra non-data subheading row
 before regional data. Repeated header rows or blank-region rows inside the
 selected summary table are skipped before records are written.
+Live fetch URLs must not include query strings or fragments.
 
 The `make lint`, `make test`, and `make build` aliases run the same offline
 baseline while this project has no narrower installed gates.
@@ -96,6 +97,8 @@ markup. Validate live scraping separately before publishing current data.
   reviewed source migration changes the data provenance boundary.
 - Reject embedded credentials in live fetch URLs before opening network
   requests.
+- Reject query strings or fragments in live fetch URLs unless a reviewed source
+  migration changes the provenance boundary.
 
 ## Maintenance Notes
 
@@ -118,6 +121,8 @@ markup. Validate live scraping separately before publishing current data.
   validation coverage.
 - See `docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md` for fetch URL
   credential guard coverage.
+- See `docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md` for fetch URL
+  query and fragment guard coverage.
 
 ## Contributing
 
