@@ -68,7 +68,8 @@ The baseline compiles the Python files, runs fixture-based unit tests, and
 checks that the scraper stays Python 3 compatible, uses HTTPS, and keeps
 fetching, parsing, and writing separated. The parser tests also cover CDC
 percent-positive cells that include a space before the percent sign and fail
-when the expected flu summary headers are missing. They also cover summary
+when the expected flu summary headers are missing. They also cover unrelated
+legacy `cellpadding=3` tables before the expected summary table, and summary
 tables that omit the extra non-data subheading row before regional data.
 
 Fixture tests do not prove that the current live CDC page still has compatible
@@ -94,6 +95,8 @@ markup. Validate live scraping separately before publishing current data.
   summary table header contract.
 - See `docs/plans/2026-06-09-flu-shot-optional-subheading.md` for optional
   summary subheading handling.
+- See `docs/plans/2026-06-09-flu-shot-table-selection.md` for selecting the
+  expected summary table when unrelated matching tables are present.
 
 ## Contributing
 

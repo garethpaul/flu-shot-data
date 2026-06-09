@@ -52,6 +52,8 @@ class FluSummaryTableParser(HTMLParser):
         self._in_cell = False
         self._current_row: List[str] = []
         self._current_cell: List[str] = []
+        self._current_table: List[List[str]] = []
+        self.tables: List[List[List[str]]] = []
         self.rows: List[List[str]] = []
 
     def handle_starttag(self, tag: str, attrs: List[tuple[str, str | None]]) -> None:
@@ -62,6 +64,7 @@ class FluSummaryTableParser(HTMLParser):
             elif attr_map.get("cellpadding") == "3":
                 self._in_target_table = True
                 self._table_depth = 1
+                self._current_table = []
 
         if not self._in_target_table:
             return
@@ -89,11 +92,15 @@ class FluSummaryTableParser(HTMLParser):
         elif tag == "tr" and self._in_row:
             if self._current_row:
                 self.rows.append(self._current_row)
+                self._current_table.append(self._current_row)
             self._current_row = []
             self._in_row = False
         elif tag == "table":
             self._table_depth -= 1
             if self._table_depth == 0:
+                if self._current_table:
+                    self.tables.append(self._current_table)
+                self._current_table = []
                 self._in_target_table = False
 
 
@@ -143,14 +150,18 @@ def parse_records(html: str) -> List[Dict[str, str]]:
     parser = FluSummaryTableParser()
     parser.feed(html)
 
-    if not parser.rows:
+    if not parser.tables:
         raise ValueError("Could not find CDC summary table with cellpadding=3.")
 
-    if not has_expected_summary_header(parser.rows):
+    summary_rows = next(
+        (table for table in parser.tables if has_expected_summary_header(table)),
+        None,
+    )
+    if summary_rows is None:
         raise ValueError("CDC summary table did not contain expected flu summary headers.")
 
     records: List[Dict[str, str]] = []
-    for row in parser.rows[1:]:
+    for row in summary_rows[1:]:
         if len(row) < 9:
             continue
 

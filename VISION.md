@@ -28,7 +28,8 @@ Current baseline:
   fixture-based tests, generated-output ignores, and static parser guardrails.
 - Fetching, parsing, and output writing are separate functions in `flushot.py`.
 - The CDC URL uses HTTPS.
-- The parser validates expected CDC summary table headers before emitting rows.
+- The parser validates expected CDC summary table headers and selects the first
+  matching summary table before emitting rows.
 - Summary subheading rows are optional; the parser starts after the header row
   and skips short non-data rows.
 - Percent-positive cells are normalized without a trailing percent sign or

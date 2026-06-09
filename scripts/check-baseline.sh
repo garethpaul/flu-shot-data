@@ -6,6 +6,7 @@ PLAN="$ROOT_DIR/docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"
 PERCENT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-percent-normalization.md"
 HEADER_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-header-guard.md"
 SUBHEADING_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-optional-subheading.md"
+TABLE_SELECTION_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-table-selection.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -35,6 +36,7 @@ for path in \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
   "docs/plans/2026-06-09-flu-shot-optional-subheading.md" \
+  "docs/plans/2026-06-09-flu-shot-table-selection.md" \
   "docs/plans/2026-06-09-flu-shot-summary-header-guard.md" \
   "docs/plans/2026-06-09-flu-shot-percent-normalization.md" \
   "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
@@ -65,18 +67,20 @@ fi
 
 if ! grep -Fq "EXPECTED_TABLE_HEADERS" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "def has_expected_summary_header" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "parser.tables" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "expected flu summary headers" "$ROOT_DIR/flushot.py"; then
   printf '%s\n' "Parser must validate the expected CDC summary table headers." >&2
   exit 1
 fi
 
 if ! grep -Fq "test_parse_records_fails_when_summary_header_is_missing" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_parse_records_skips_unrelated_matching_tables" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "Unexpected metric" "$ROOT_DIR/tests/test_flushot.py"; then
-  printf '%s\n' "Tests must cover malformed CDC summary table headers." >&2
+  printf '%s\n' "Tests must cover malformed and unrelated CDC summary table candidates." >&2
   exit 1
 fi
 
-if ! grep -Fq "for row in parser.rows[1:]" "$ROOT_DIR/flushot.py" ||
+if ! grep -Fq "for row in summary_rows[1:]" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_parse_records_without_subheading_keeps_first_region" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Parser must not require an extra non-data subheading row before region rows." >&2
   exit 1
@@ -101,6 +105,7 @@ fi
 if ! grep -Fq "scripts/check-baseline.sh" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Python 3" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "expected CDC summary table headers" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "matching summary table" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Percent-positive cells are normalized" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "fixture-based tests" "$ROOT_DIR/VISION.md"; then
   printf '%s\n' "VISION must describe the current Python 3 parser and percent normalization baseline." >&2
@@ -131,6 +136,11 @@ fi
 
 if ! grep -Fq "status: completed" "$SUBHEADING_PLAN"; then
   printf '%s\n' "Optional subheading plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$TABLE_SELECTION_PLAN"; then
+  printf '%s\n' "Table selection plan must be marked completed." >&2
   exit 1
 fi
 

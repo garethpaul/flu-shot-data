@@ -39,6 +39,21 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual(2, len(records))
         self.assertEqual("National", records[0]["HHS_REGION"])
 
+    def test_parse_records_skips_unrelated_matching_tables(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace(
+            "    <table cellpadding=\"3\">",
+            "    <table cellpadding=\"3\">\n"
+            "      <tr><th>Unrelated</th><th>Count</th></tr>\n"
+            "      <tr><td>Before summary</td><td>1</td></tr>\n"
+            "    </table>\n"
+            "    <table cellpadding=\"3\">",
+            1,
+        )
+        records = flushot.parse_records(html)
+
+        self.assertEqual(2, len(records))
+        self.assertEqual("National", records[0]["HHS_REGION"])
+
     def test_write_outputs_uses_expected_schema(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 

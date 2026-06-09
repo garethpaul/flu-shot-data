@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-09
+
+- Selected the first table with the expected CDC summary headers when unrelated
+  `cellpadding=3` tables appear before the flu summary.
+
 ## 2026-06-08
 
 - Made the optional CDC summary subheading row non-required so the first region
