@@ -107,8 +107,11 @@ class FluSummaryTableParser(HTMLParser):
 
 def validate_fetch_url(url: str) -> str:
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.netloc:
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not hostname:
         raise ValueError("CDC fetch URL must be an HTTPS URL with a host.")
+    if hostname != "cdc.gov" and not hostname.endswith(".cdc.gov"):
+        raise ValueError("CDC fetch URL host must be cdc.gov.")
     return url
 
 

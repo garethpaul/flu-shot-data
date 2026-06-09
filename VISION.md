@@ -29,6 +29,8 @@ Current baseline:
 - Fetching, parsing, and output writing are separate functions in `flushot.py`.
 - The CDC URL uses HTTPS, and fetch URLs are validated as HTTPS URLs with hosts
   before network requests are opened.
+- Live fetch URLs are limited to `cdc.gov` or CDC subdomains before network
+  requests are opened.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -51,6 +53,7 @@ Next priorities:
 - Add provenance metadata if generated outputs are intentionally committed
 - Update source URLs if CDC structure changes
 - Keep URL validation covered if alternate CDC source URLs are introduced
+- Keep source host validation reviewed when CDC URL provenance changes
 
 Contribution rules:
 

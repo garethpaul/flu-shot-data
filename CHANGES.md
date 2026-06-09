@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Limited live fetch URLs to `cdc.gov` or CDC subdomains before opening
+  network requests.
 - Added fetch URL validation so live requests require HTTPS URLs with hosts,
   plus `make lint`/`make test`/`make build` baseline aliases.
 - Selected the first table with the expected CDC summary headers when unrelated

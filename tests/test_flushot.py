@@ -120,6 +120,14 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "HTTPS URL"):
             flushot.validate_fetch_url("https:///flu/weekly/")
 
+        with self.assertRaisesRegex(ValueError, "cdc.gov"):
+            flushot.validate_fetch_url("https://example.com/flu/weekly/")
+
+        self.assertEqual(
+            "https://data.cdc.gov/flu/weekly/",
+            flushot.validate_fetch_url("https://data.cdc.gov/flu/weekly/"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
