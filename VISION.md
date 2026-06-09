@@ -27,7 +27,8 @@ Current baseline:
 - `scripts/check-baseline.sh` and `make check` verify Python 3 syntax,
   fixture-based tests, generated-output ignores, and static parser guardrails.
 - Fetching, parsing, and output writing are separate functions in `flushot.py`.
-- The CDC URL uses HTTPS.
+- The CDC URL uses HTTPS, and fetch URLs are validated as HTTPS URLs with hosts
+  before network requests are opened.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -38,6 +39,8 @@ Current baseline:
   extra spacing.
 - `flu.csv` and `flu.json` are treated as generated outputs unless intentionally
   reviewed as data artifacts.
+- `make lint`, `make test`, and `make build` run the same offline baseline
+  while no narrower gates are installed.
 
 Next priorities:
 
@@ -47,6 +50,7 @@ Next priorities:
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers
 - Add provenance metadata if generated outputs are intentionally committed
 - Update source URLs if CDC structure changes
+- Keep URL validation covered if alternate CDC source URLs are introduced
 
 Contribution rules:
 

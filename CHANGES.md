@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added fetch URL validation so live requests require HTTPS URLs with hosts,
+  plus `make lint`/`make test`/`make build` baseline aliases.
 - Selected the first table with the expected CDC summary headers when unrelated
   `cellpadding=3` tables appear before the flu summary.
 - Skipped repeated summary headers and blank-region rows inside the selected

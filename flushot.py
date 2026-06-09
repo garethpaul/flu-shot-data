@@ -9,6 +9,7 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
@@ -104,9 +105,17 @@ class FluSummaryTableParser(HTMLParser):
                 self._in_target_table = False
 
 
+def validate_fetch_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError("CDC fetch URL must be an HTTPS URL with a host.")
+    return url
+
+
 def fetch_html(url: str = CDC_FLU_URL, timeout: int = 30) -> str:
+    fetch_url = validate_fetch_url(url)
     request = Request(
-        url,
+        fetch_url,
         headers={
             "User-Agent": (
                 "Mozilla/5.0 (compatible; flu-shot-data/1.0; "

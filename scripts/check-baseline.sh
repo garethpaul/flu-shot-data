@@ -8,6 +8,7 @@ HEADER_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-header-guard.md"
 SUBHEADING_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-optional-subheading.md"
 TABLE_SELECTION_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-table-selection.md"
 SUMMARY_ROW_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-summary-row-skip.md"
+FETCH_URL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-validation.md"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -37,6 +38,7 @@ for path in \
   "tests/test_flushot.py" \
   "tests/fixtures/cdc_weekly_summary.html" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
+  "docs/plans/2026-06-09-flu-shot-fetch-url-validation.md" \
   "docs/plans/2026-06-09-flu-shot-optional-subheading.md" \
   "docs/plans/2026-06-09-flu-shot-table-selection.md" \
   "docs/plans/2026-06-09-flu-shot-summary-header-guard.md" \
@@ -58,6 +60,23 @@ if ! grep -Fq "parse_records" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "write_outputs" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "fetch_html" "$ROOT_DIR/flushot.py"; then
   printf '%s\n' "Scraper must keep fetch, parse, and write concerns separated." >&2
+  exit 1
+fi
+
+if ! grep -Fq "def validate_fetch_url" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "urlparse" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'parsed.scheme != "https"' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "not parsed.netloc" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "validate_fetch_url(url)" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_validate_fetch_url_requires_https_with_host" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Scraper must validate fetch URLs before opening network requests." >&2
+  exit 1
+fi
+
+if ! grep -Fq "lint: check" "$ROOT_DIR/Makefile" ||
+  ! grep -Fq "test: check" "$ROOT_DIR/Makefile" ||
+  ! grep -Fq "build: check" "$ROOT_DIR/Makefile"; then
+  printf '%s\n' "Makefile must expose lint, test, and build gates." >&2
   exit 1
 fi
 
@@ -155,6 +174,11 @@ fi
 
 if ! grep -Fq "status: completed" "$SUMMARY_ROW_PLAN"; then
   printf '%s\n' "Summary row skip plan must be marked completed." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$FETCH_URL_PLAN"; then
+  printf '%s\n' "Fetch URL validation plan must be marked completed." >&2
   exit 1
 fi
 

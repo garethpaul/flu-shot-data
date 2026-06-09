@@ -66,13 +66,17 @@ make check
 
 The baseline compiles the Python files, runs fixture-based unit tests, and
 checks that the scraper stays Python 3 compatible, uses HTTPS, and keeps
-fetching, parsing, and writing separated. The parser tests also cover CDC
-percent-positive cells that include a space before the percent sign and fail
-when the expected flu summary headers are missing. They also cover unrelated
-legacy `cellpadding=3` tables before the expected summary table, and summary
-tables that omit the extra non-data subheading row before regional data.
-Repeated header rows or blank-region rows inside the selected summary table are
-skipped before records are written.
+fetching, parsing, and writing separated. Fetch URLs are validated as HTTPS
+URLs with a host before any network request is opened. The parser tests also
+cover CDC percent-positive cells that include a space before the percent sign
+and fail when the expected flu summary headers are missing. They also cover
+unrelated legacy `cellpadding=3` tables before the expected summary table, and
+summary tables that omit the extra non-data subheading row before regional
+data. Repeated header rows or blank-region rows inside the selected summary
+table are skipped before records are written.
+
+The `make lint`, `make test`, and `make build` aliases run the same offline
+baseline while this project has no narrower installed gates.
 
 Fixture tests do not prove that the current live CDC page still has compatible
 markup. Validate live scraping separately before publishing current data.
@@ -85,6 +89,8 @@ markup. Validate live scraping separately before publishing current data.
 
 - Review changes touching network requests, sockets, or service endpoints; examples from the scan include flushot.py.
 - Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include flushot.py.
+- Keep live fetch URLs on HTTPS with a hostname; use fixtures for default tests
+  rather than live network calls.
 
 ## Maintenance Notes
 
@@ -101,6 +107,8 @@ markup. Validate live scraping separately before publishing current data.
   expected summary table when unrelated matching tables are present.
 - See `docs/plans/2026-06-09-flu-shot-summary-row-skip.md` for repeated header
   and blank-region row handling.
+- See `docs/plans/2026-06-09-flu-shot-fetch-url-validation.md` for fetch URL
+  validation coverage.
 
 ## Contributing
 

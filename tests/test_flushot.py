@@ -111,6 +111,15 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expected flu summary headers"):
             flushot.parse_records(html)
 
+    def test_validate_fetch_url_requires_https_with_host(self):
+        self.assertEqual(flushot.CDC_FLU_URL, flushot.validate_fetch_url(flushot.CDC_FLU_URL))
+
+        with self.assertRaisesRegex(ValueError, "HTTPS URL"):
+            flushot.validate_fetch_url("http://www.cdc.gov/flu/weekly/")
+
+        with self.assertRaisesRegex(ValueError, "HTTPS URL"):
+            flushot.validate_fetch_url("https:///flu/weekly/")
+
 
 if __name__ == "__main__":
     unittest.main()
