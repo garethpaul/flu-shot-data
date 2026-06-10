@@ -1,5 +1,12 @@
 # Changes
 
+## 2026-06-10
+
+- Added a pinned, least-privilege GitHub Actions matrix that runs the offline
+  baseline on Python 3.10, 3.12, and 3.14.
+- Extended the baseline script and docs to require the hosted CI verification
+  path.
+
 ## 2026-06-09
 
 - Bounded live CDC fetch timeout values before opening network requests.

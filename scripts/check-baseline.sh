@@ -13,6 +13,8 @@ FETCH_HOST_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-host-validation.
 FETCH_CREDENTIAL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md"
 FETCH_URL_PARTS_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md"
 FETCH_TIMEOUT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md"
+CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
+CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -33,6 +35,7 @@ require_file() {
 
 for path in \
   ".gitignore" \
+  ".github/workflows/check.yml" \
   "CHANGES.md" \
   "Makefile" \
   "README.md" \
@@ -43,6 +46,7 @@ for path in \
   "tests/fixtures/cdc_weekly_summary.html" \
   "docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md" \
+  "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-host-validation.md" \
@@ -54,6 +58,26 @@ for path in \
   "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
   require_file "$path"
 done
+
+if ! grep -Fq "workflow_dispatch:" "$CI_WORKFLOW" ||
+  ! grep -Fq "contents: read" "$CI_WORKFLOW" ||
+  ! grep -Fq "cancel-in-progress: true" "$CI_WORKFLOW" ||
+  ! grep -Fq "runs-on: ubuntu-24.04" "$CI_WORKFLOW" ||
+  ! grep -Fq "timeout-minutes: 10" "$CI_WORKFLOW" ||
+  ! grep -Fq 'python-version: ["3.10", "3.12", "3.14"]' "$CI_WORKFLOW" ||
+  ! grep -Fq "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" "$CI_WORKFLOW" ||
+  ! grep -Fq "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" "$CI_WORKFLOW" ||
+  ! grep -Fq "run: make check" "$CI_WORKFLOW"; then
+  printf '%s\n' "GitHub Actions must keep the pinned offline Python matrix contract." >&2
+  exit 1
+fi
+
+if ! grep -Fq "without contacting live CDC endpoints" "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq "Python 3.10, 3.12, and 3.14" "$ROOT_DIR/CHANGES.md" ||
+  ! grep -Fq "docs/plans/2026-06-10-ci-baseline.md" "$ROOT_DIR/README.md"; then
+  printf '%s\n' "Project docs must record the offline hosted Python matrix." >&2
+  exit 1
+fi
 
 "$PYTHON" -m py_compile "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py"
 "$PYTHON" -m unittest discover -s "$ROOT_DIR/tests" -p "test*.py"
@@ -155,6 +179,8 @@ if ! grep -Fq "make check" "$ROOT_DIR/README.md" ||
   ! grep -Fq "CDC-owned hostnames" "$ROOT_DIR/README.md" ||
   ! grep -Fq "embedded credentials" "$ROOT_DIR/README.md" ||
   ! grep -Fq "fetch timeouts are bounded" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "GitHub Actions" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "docs/plans/2026-06-10-ci-baseline.md" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.csv" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.json" "$ROOT_DIR/README.md"; then
   printf '%s\n' "README must document verification, percent normalization, and generated outputs." >&2
@@ -169,6 +195,7 @@ if ! grep -Fq "scripts/check-baseline.sh" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "embedded credentials" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "query strings or fragments" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "timeout values are bounded" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "GitHub Actions" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "Percent-positive cells are normalized" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq "fixture-based tests" "$ROOT_DIR/VISION.md"; then
   printf '%s\n' "VISION must describe the current Python 3 parser and percent normalization baseline." >&2
@@ -179,6 +206,12 @@ if ! grep -Fq "flu.csv" "$ROOT_DIR/.gitignore" ||
   ! grep -Fq "flu.json" "$ROOT_DIR/.gitignore" ||
   ! grep -Fq "__pycache__/" "$ROOT_DIR/.gitignore"; then
   printf '%s\n' "Generated outputs and Python caches must stay ignored." >&2
+  exit 1
+fi
+
+if ! grep -Fq "GitHub Actions" "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq "GitHub Actions" "$ROOT_DIR/CHANGES.md"; then
+  printf '%s\n' "Project docs must record the GitHub Actions CI baseline." >&2
   exit 1
 fi
 
@@ -244,6 +277,12 @@ fi
 
 if ! grep -Fq "make check" "$FETCH_TIMEOUT_PLAN"; then
   printf '%s\n' "Fetch timeout validation plan must record make check verification." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$CI_PLAN" ||
+  ! grep -Fq "make check" "$CI_PLAN"; then
+  printf '%s\n' "CI baseline plan must be completed and record make check verification." >&2
   exit 1
 fi
 

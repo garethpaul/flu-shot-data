@@ -49,6 +49,8 @@ Current baseline:
   reviewed as data artifacts.
 - `make lint`, `make test`, and `make build` run the same offline baseline
   while no narrower gates are installed.
+- GitHub Actions runs the offline `make check` baseline on Python 3.10, 3.12,
+  and 3.14 for pushes and pull requests.
 
 Next priorities:
 
@@ -64,6 +66,7 @@ Next priorities:
 - Keep fetch query and fragment rejection covered when source URL handling
   changes
 - Keep fetch timeout validation covered when live fetch behavior changes
+- Keep `.github/workflows/check.yml` in sync with the local Python baseline.
 
 Contribution rules:
 
