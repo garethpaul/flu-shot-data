@@ -13,6 +13,7 @@ FETCH_HOST_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-host-validation.
 FETCH_CREDENTIAL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md"
 FETCH_URL_PARTS_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md"
 FETCH_TIMEOUT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md"
+WEEK_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-10-flu-week-metadata-validation.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 PYTHON=${PYTHON:-python3}
@@ -46,6 +47,7 @@ for path in \
   "tests/fixtures/cdc_weekly_summary.html" \
   "docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md" \
+  "docs/plans/2026-06-10-flu-week-metadata-validation.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -92,6 +94,14 @@ if ! grep -Fq "parse_records" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "write_outputs" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "fetch_html" "$ROOT_DIR/flushot.py"; then
   printf '%s\n' "Scraper must keep fetch, parse, and write concerns separated." >&2
+  exit 1
+fi
+
+if ! grep -Fq "1 <= int(week_num) <= 53" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'datetime.strptime(week_end, "%B %d, %Y")' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_parse_records_rejects_out_of_range_week_number" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_parse_records_rejects_invalid_week_ending_date" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Parser must validate CDC week numbers and calendar dates." >&2
   exit 1
 fi
 
@@ -277,6 +287,11 @@ fi
 
 if ! grep -Fq "make check" "$FETCH_TIMEOUT_PLAN"; then
   printf '%s\n' "Fetch timeout validation plan must record make check verification." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$WEEK_METADATA_PLAN"; then
+  printf '%s\n' "Flu week metadata validation plan must be marked completed." >&2
   exit 1
 fi
 

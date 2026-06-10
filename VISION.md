@@ -45,6 +45,8 @@ Current baseline:
   and skips short non-data rows.
 - Percent-positive cells are normalized without a trailing percent sign or
   extra spacing.
+- Influenza week numbers and week-ending labels are validated against numeric
+  and calendar boundaries before output.
 - `flu.csv` and `flu.json` are treated as generated outputs unless intentionally
   reviewed as data artifacts.
 - `make lint`, `make test`, and `make build` run the same offline baseline

@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List
@@ -156,7 +157,18 @@ def parse_week_metadata(html: str) -> tuple[str, str]:
     if not week_num_match or not week_end_match:
         raise ValueError("Could not find flu week number and ending date in CDC HTML.")
 
-    return week_num_match.group(1), week_end_match.group(1)
+    week_num = week_num_match.group(1)
+    week_end = week_end_match.group(1)
+
+    if not 1 <= int(week_num) <= 53:
+        raise ValueError("CDC influenza season week must be between 1 and 53.")
+
+    try:
+        datetime.strptime(week_end, "%B %d, %Y")
+    except ValueError as error:
+        raise ValueError("CDC flu week ending date must be a valid calendar date.") from error
+
+    return week_num, week_end
 
 
 def normalize_percent(value: str) -> str:

@@ -103,6 +103,22 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "week number and ending date"):
             flushot.parse_records("<html><table cellpadding='3'></table></html>")
 
+    def test_parse_records_rejects_out_of_range_week_number(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace(
+            "Influenza Season Week 12", "Influenza Season Week 99"
+        )
+
+        with self.assertRaisesRegex(ValueError, "between 1 and 53"):
+            flushot.parse_records(html)
+
+    def test_parse_records_rejects_invalid_week_ending_date(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace(
+            "March 23, 2024", "February 31, 2024"
+        )
+
+        with self.assertRaisesRegex(ValueError, "valid calendar date"):
+            flushot.parse_records(html)
+
     def test_parse_records_fails_when_summary_header_is_missing(self):
         html = FIXTURE.read_text(encoding="utf-8").replace(
             "<th>Percent positive</th>", "<th>Unexpected metric</th>"

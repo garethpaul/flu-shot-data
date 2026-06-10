@@ -74,7 +74,9 @@ percent sign, and they fail when the expected flu summary headers are missing.
 They also cover unrelated legacy `cellpadding=3` tables before the expected
 summary table, and summary tables that omit the extra non-data subheading row
 before regional data. Repeated header rows or blank-region rows inside the
-selected summary table are skipped before records are written.
+selected summary table are skipped before records are written. Extracted week
+numbers must be between 1 and 53, and week-ending labels must parse as real
+calendar dates before records are written.
 Live fetch URLs must not include query strings or fragments.
 Live fetch timeouts are bounded before `urlopen` is called; invalid or
 out-of-range timeout values fall back to 30 seconds.

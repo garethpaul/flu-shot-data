@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Rejected out-of-range influenza week numbers and impossible week-ending
+  calendar dates before emitting records.
 - Added a pinned, least-privilege GitHub Actions matrix that runs the offline
   baseline on Python 3.10, 3.12, and 3.14.
 - Extended the baseline script and docs to require the hosted CI verification

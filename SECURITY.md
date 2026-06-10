@@ -36,6 +36,8 @@ Helpful reports include:
   migration changes the data provenance boundary.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
+- Parsed influenza week numbers and ending dates should be validated before
+  public-health records are emitted.
 - GitHub Actions runs the offline `make check` matrix with read-only repository
   permissions so fixture, fetch URL, parser, and output guardrails stay
   enforced without contacting live CDC endpoints.
