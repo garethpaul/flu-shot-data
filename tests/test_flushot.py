@@ -117,6 +117,25 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual(2, len(records))
         self.assertEqual(["National", "Region 1"], [row["HHS_REGION"] for row in records])
 
+    def test_parse_records_rejects_duplicate_regions_case_insensitively(self):
+        duplicate_row = (
+            "      <tr>\n"
+            "        <td><strong>{region}</strong></td>\n"
+            "        <td>2.1</td><td>8.1%</td><td>6</td>\n"
+            "        <td>3</td><td>4</td><td>0</td><td>1</td><td>0</td>\n"
+            "      </tr>\n"
+        )
+
+        for region in ("Region 1", "region 1"):
+            with self.subTest(region=region):
+                html = FIXTURE.read_text(encoding="utf-8").replace(
+                    "    </table>",
+                    duplicate_row.format(region=region) + "    </table>",
+                )
+
+                with self.assertRaisesRegex(ValueError, "duplicate region"):
+                    flushot.parse_records(html)
+
     def test_write_outputs_uses_expected_schema(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 

@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-12
+
+- Rejected exact and case-varied duplicate region rows before generating weekly
+  flu CSV or JSON records.
+- Added fixture-derived duplicate coverage and a static parser contract.
+
 ## 2026-06-10
 
 - Rejected out-of-range influenza week numbers and impossible week-ending

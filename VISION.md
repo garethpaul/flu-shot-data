@@ -43,6 +43,7 @@ Current baseline:
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
   selected summary table.
+- Duplicate region labels are rejected case-insensitively before output.
 - Summary subheading rows are optional; the parser starts after the header row
   and skips short non-data rows.
 - Percent-positive cells are normalized without a trailing percent sign or
@@ -64,6 +65,7 @@ Next priorities:
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers
+- Keep region uniqueness covered when CDC summary row handling changes
 - Add provenance metadata if generated outputs are intentionally committed
 - Update source URLs if CDC structure changes
 - Keep URL validation covered if alternate CDC source URLs are introduced

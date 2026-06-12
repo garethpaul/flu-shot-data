@@ -74,7 +74,9 @@ percent sign, and they fail when the expected flu summary headers are missing.
 They also cover unrelated legacy `cellpadding=3` tables before the expected
 summary table, and summary tables that omit the extra non-data subheading row
 before regional data. Repeated header rows or blank-region rows inside the
-selected summary table are skipped before records are written. Extracted week
+selected summary table are skipped before records are written. Duplicate region
+labels, including case-only variants, fail parsing instead of producing
+ambiguous records. Extracted week
 numbers must be between 1 and 53, and week-ending labels must parse as real
 calendar dates before records are written.
 Live fetch URLs must not include query strings or fragments.
@@ -126,6 +128,8 @@ markup. Validate live scraping separately before publishing current data.
   expected summary table when unrelated matching tables are present.
 - See `docs/plans/2026-06-09-flu-shot-summary-row-skip.md` for repeated header
   and blank-region row handling.
+- See `docs/plans/2026-06-12-duplicate-region-guard.md` for region uniqueness
+  validation.
 - See `docs/plans/2026-06-09-flu-shot-fetch-url-validation.md` for fetch URL
   validation coverage.
 - See `docs/plans/2026-06-09-flu-shot-fetch-host-validation.md` for CDC host

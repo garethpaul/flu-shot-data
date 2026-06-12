@@ -15,6 +15,7 @@ FETCH_URL_PARTS_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-parts-g
 FETCH_TIMEOUT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md"
 WEEK_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-10-flu-week-metadata-validation.md"
 LIVE_FETCH_BOUNDARY_PLAN="$ROOT_DIR/docs/plans/2026-06-12-live-fetch-boundaries.md"
+DUPLICATE_REGION_PLAN="$ROOT_DIR/docs/plans/2026-06-12-duplicate-region-guard.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -52,6 +53,7 @@ for path in \
   "docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md" \
   "docs/plans/2026-06-10-flu-week-metadata-validation.md" \
   "docs/plans/2026-06-12-live-fetch-boundaries.md" \
+  "docs/plans/2026-06-12-duplicate-region-guard.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -68,6 +70,15 @@ done
 workflow_paths=$(find "$ROOT_DIR/.github/workflows" -type f \( -name '*.yml' -o -name '*.yaml' \) -print | LC_ALL=C sort)
 if [ "$workflow_paths" != "$CI_WORKFLOW" ]; then
   printf '%s\n' "The reviewed check workflow must be the only GitHub Actions workflow." >&2
+  exit 1
+fi
+
+if ! grep -Fq "seen_regions: set[str] = set()" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "region_key = region.casefold()" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "CDC summary table contains duplicate region rows" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_parse_records_rejects_duplicate_regions_case_insensitively" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq 'for region in ("Region 1", "region 1")' "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Parser must reject duplicate region records case-insensitively." >&2
   exit 1
 fi
 
@@ -382,6 +393,12 @@ fi
 if ! grep -Fq "status: completed" "$LIVE_FETCH_BOUNDARY_PLAN" ||
   ! grep -Fq "make check" "$LIVE_FETCH_BOUNDARY_PLAN"; then
   printf '%s\n' "Live fetch boundary plan must be completed and record verification." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$DUPLICATE_REGION_PLAN" ||
+  ! grep -Fq "make check" "$DUPLICATE_REGION_PLAN"; then
+  printf '%s\n' "Duplicate region guard plan must be completed and record verification." >&2
   exit 1
 fi
 
