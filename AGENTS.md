@@ -2,7 +2,8 @@
 
 ## Repository purpose
 
-`garethpaul/flu-shot-data` is a public sample, documentation, or utility project. Flu Shot Data to CSV
+`garethpaul/flu-shot-data` is a dependency-free Python utility that converts a
+CDC weekly influenza summary table into CSV and JSON records.
 
 ## Project structure
 
@@ -13,7 +14,8 @@
 
 ## Development commands
 
-- Install dependencies: no repository-specific install command is documented.
+- Install dependencies: none; the maintained path uses the Python standard
+  library only.
 - Full baseline: `make check`
 - Lint/static checks: `make lint`
 - Tests: `make test`
@@ -44,6 +46,9 @@
 - Keep live fetch hosts limited to `cdc.gov` or CDC subdomains unless a reviewed source migration changes the data provenance boundary.
 - Reject embedded credentials in live fetch URLs before opening network requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source migration changes the provenance boundary.
+- Revalidate redirect targets and final response URLs against the CDC hostname
+  policy.
+- Reject automatic redirects and keep live response bodies bounded.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 
 ## Agent workflow
