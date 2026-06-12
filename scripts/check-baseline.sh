@@ -396,11 +396,31 @@ if ! grep -Fq "status: completed" "$LIVE_FETCH_BOUNDARY_PLAN" ||
   exit 1
 fi
 
-if ! grep -Fq "status: completed" "$DUPLICATE_REGION_PLAN" ||
-  ! grep -Fq "make check" "$DUPLICATE_REGION_PLAN"; then
-  printf '%s\n' "Duplicate region guard plan must be completed and record verification." >&2
-  exit 1
-fi
+python3 - "$DUPLICATE_REGION_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+verification = plan.split("## Verification Completed\n", 1)[-1]
+required = (
+    "All 22 offline tests",
+    "Pull-request run `27392428650`",
+    "push run `27392439231`",
+    "CodeQL run `27402320646`",
+)
+
+if (
+    statuses != ["status: completed"]
+    or any(item not in verification for item in required)
+    or re.search(r"\b(?:pending|todo|tbd|not run)\b", verification, re.IGNORECASE)
+):
+    raise SystemExit(
+        "Duplicate region guard plan must remain completed with actual verification recorded."
+    )
+PY
 
 if ! grep -Fq "status: completed" "$CI_PLAN" ||
   ! grep -Fq "make check" "$CI_PLAN"; then

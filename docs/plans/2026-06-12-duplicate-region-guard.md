@@ -43,3 +43,22 @@ source table was ambiguous.
 - `make check`
 - `git diff --check`
 - GitHub Actions on Python 3.10, 3.12, and 3.14
+
+## Work Completed
+
+- Added case-insensitive region-key tracking while preserving each valid
+  region's original display value.
+- Rejected a duplicate before appending its record or writing output files.
+- Added exact and case-varied duplicate coverage while retaining the existing
+  partial-fixture and repeated-header behavior.
+
+## Verification Completed
+
+- All 22 offline tests, all four Make gates, Python compilation, shell syntax,
+  and `git diff --check` passed locally.
+- Pull-request run `27392428650` passed the Python 3.10, 3.12, and 3.14 matrix
+  at implementation commit `5a8853935bf285c38df26afc10392d83905704a6`.
+- Post-merge push run `27392439231` and CodeQL run `27402320646` passed at
+  default-branch merge commit `3b35641376524125ff11d3fa4366cf8a8b1ddc3d`.
+- The workflow intentionally limits push execution to `master`, so the
+  implementation feature head has a pull-request run but no push run.
