@@ -242,6 +242,7 @@ def parse_records(html: str) -> List[Dict[str, str]]:
         raise ValueError("CDC summary table did not contain expected flu summary headers.")
 
     records: List[Dict[str, str]] = []
+    seen_regions: set[str] = set()
     for row in summary_rows[1:]:
         if len(row) < 9:
             continue
@@ -251,6 +252,10 @@ def parse_records(html: str) -> List[Dict[str, str]]:
         region = row[0].strip()
         if not region:
             continue
+        region_key = region.casefold()
+        if region_key in seen_regions:
+            raise ValueError("CDC summary table contains duplicate region rows.")
+        seen_regions.add(region_key)
 
         values = [
             week_num,

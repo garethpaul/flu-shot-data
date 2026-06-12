@@ -40,6 +40,8 @@ Helpful reports include:
   HTTPS CDC hostname boundary, and response bodies are bounded.
 - Parsed influenza week numbers and ending dates should be validated before
   public-health records are emitted.
+- Duplicate region labels should fail parsing before public-health outputs are
+  written, including duplicates that differ only by letter case.
 - GitHub Actions runs the offline `make check` matrix with read-only repository
   permissions so fixture, fetch URL, parser, and output guardrails stay
   enforced without contacting live CDC endpoints.
