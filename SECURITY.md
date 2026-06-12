@@ -36,6 +36,8 @@ Helpful reports include:
   migration changes the data provenance boundary.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
+- GitHub Actions runs `make check` for pushes and pull requests so fixture,
+  fetch URL, parser, and output guardrails stay enforced before merge.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 
