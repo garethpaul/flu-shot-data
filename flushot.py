@@ -11,10 +11,12 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 CDC_FLU_URL = "https://www.cdc.gov/flu/weekly/"
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+READ_CHUNK_BYTES = 64 * 1024
 
 HEADERS = [
     "WEEK_NUM",
@@ -131,8 +133,46 @@ def fetch_timeout(value: int | str = 30, default: int = 30) -> int:
     return default
 
 
-def fetch_html(url: str = CDC_FLU_URL, timeout: int = 30) -> str:
+class CDCNoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        validate_fetch_url(newurl)
+        raise ValueError("CDC fetch redirects are not allowed.")
+
+
+def read_response_bytes(response, max_bytes: int) -> bytes:
+    if max_bytes < 1:
+        raise ValueError("CDC response size limit must be positive.")
+
+    content_length = response.headers.get("Content-Length")
+    if content_length is not None:
+        try:
+            declared_bytes = int(content_length)
+        except ValueError as error:
+            raise ValueError("CDC response has an invalid Content-Length.") from error
+        if declared_bytes < 0 or declared_bytes > max_bytes:
+            raise ValueError("CDC response exceeds the maximum allowed size.")
+
+    chunks = []
+    total_bytes = 0
+    while True:
+        chunk = response.read(min(READ_CHUNK_BYTES, max_bytes - total_bytes + 1))
+        if not chunk:
+            break
+        total_bytes += len(chunk)
+        if total_bytes > max_bytes:
+            raise ValueError("CDC response exceeds the maximum allowed size.")
+        chunks.append(chunk)
+
+    return b"".join(chunks)
+
+
+def fetch_html(
+    url: str = CDC_FLU_URL,
+    timeout: int = 30,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> str:
     fetch_url = validate_fetch_url(url)
+    timeout_seconds = fetch_timeout(timeout)
     request = Request(
         fetch_url,
         headers={
@@ -142,12 +182,14 @@ def fetch_html(url: str = CDC_FLU_URL, timeout: int = 30) -> str:
             )
         },
     )
-    with urlopen(request, timeout=fetch_timeout(timeout)) as response:
-        return response.read().decode("utf-8", errors="replace")
+    opener = build_opener(CDCNoRedirectHandler())
+    with opener.open(request, timeout=timeout_seconds) as response:
+        validate_fetch_url(response.geturl())
+        return read_response_bytes(response, max_bytes).decode("utf-8", errors="replace")
 
 
 def parse_week_metadata(html: str) -> tuple[str, str]:
-    week_num_match = re.search(r"Influenza Season Week (\d{1,2})", html)
+    week_num_match = re.search(r"Influenza Season Week (\d+)", html)
     week_end_match = re.search(
         r"ending ((January|February|March|April|May|June|July|August|September|October|November|December) "
         r"\d{1,2}, \d{4})",

@@ -2,12 +2,46 @@ import csv
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
+from urllib.request import Request
 
 import flushot
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cdc_weekly_summary.html"
+
+
+class FakeResponse:
+    def __init__(self, body=b"", url=flushot.CDC_FLU_URL, headers=None):
+        self.body = BytesIO(body)
+        self.url = url
+        self.headers = headers or {}
+
+    def read(self, size=-1):
+        return self.body.read(size)
+
+    def geturl(self):
+        return self.url
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+
+class FakeOpener:
+    def __init__(self, response):
+        self.response = response
+        self.request = None
+        self.timeout = None
+
+    def open(self, request, timeout):
+        self.request = request
+        self.timeout = timeout
+        return self.response
 
 
 class FluShotParserTests(unittest.TestCase):
@@ -104,8 +138,27 @@ class FluShotParserTests(unittest.TestCase):
             flushot.parse_records("<html><table cellpadding='3'></table></html>")
 
     def test_parse_records_rejects_out_of_range_week_number(self):
+        for invalid_week in (99, 530, 531):
+            html = FIXTURE.read_text(encoding="utf-8").replace(
+                "Influenza Season Week 12", f"Influenza Season Week {invalid_week}"
+            )
+
+            with self.assertRaisesRegex(ValueError, "between 1 and 53"):
+                flushot.parse_records(html)
+
+    def test_parse_records_accepts_week_boundaries(self):
+        for week_number in (1, 53):
+            html = FIXTURE.read_text(encoding="utf-8").replace(
+                "Influenza Season Week 12", f"Influenza Season Week {week_number}"
+            )
+
+            records = flushot.parse_records(html)
+
+            self.assertEqual(str(week_number), records[0]["WEEK_NUM"])
+
+    def test_parse_records_rejects_week_zero(self):
         html = FIXTURE.read_text(encoding="utf-8").replace(
-            "Influenza Season Week 12", "Influenza Season Week 99"
+            "Influenza Season Week 12", "Influenza Season Week 0"
         )
 
         with self.assertRaisesRegex(ValueError, "between 1 and 53"):
@@ -161,6 +214,64 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual(30, flushot.fetch_timeout(0))
         self.assertEqual(30, flushot.fetch_timeout(301))
         self.assertEqual(45, flushot.fetch_timeout("45"))
+
+    def test_redirect_handler_revalidates_targets(self):
+        handler = flushot.CDCNoRedirectHandler()
+        request = Request(flushot.CDC_FLU_URL)
+
+        with self.assertRaisesRegex(ValueError, "cdc.gov"):
+            handler.redirect_request(
+                request,
+                None,
+                302,
+                "Found",
+                {},
+                "https://example.com/private",
+            )
+
+        with self.assertRaisesRegex(ValueError, "redirects are not allowed"):
+            handler.redirect_request(
+                request,
+                None,
+                302,
+                "Found",
+                {},
+                "https://www.cdc.gov/flu/weekly/index.html",
+            )
+
+    def test_read_response_rejects_declared_oversize(self):
+        response = FakeResponse(headers={"Content-Length": "11"})
+
+        with self.assertRaisesRegex(ValueError, "maximum allowed size"):
+            flushot.read_response_bytes(response, max_bytes=10)
+
+    def test_read_response_rejects_streamed_oversize(self):
+        response = FakeResponse(body=b"12345678901")
+
+        with self.assertRaisesRegex(ValueError, "maximum allowed size"):
+            flushot.read_response_bytes(response, max_bytes=10)
+
+    def test_fetch_html_uses_validated_bounded_response(self):
+        response = FakeResponse(
+            body=b"<html>ok</html>",
+            headers={"Content-Length": "15"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            html = flushot.fetch_html(timeout="45", max_bytes=20)
+
+        self.assertEqual("<html>ok</html>", html)
+        self.assertEqual(45, opener.timeout)
+        self.assertEqual(flushot.CDC_FLU_URL, opener.request.full_url)
+
+    def test_fetch_html_rejects_untrusted_final_url(self):
+        response = FakeResponse(body=b"ignored", url="https://example.com/private")
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with self.assertRaisesRegex(ValueError, "cdc.gov"):
+                flushot.fetch_html(max_bytes=20)
 
 
 if __name__ == "__main__":

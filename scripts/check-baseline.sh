@@ -14,8 +14,10 @@ FETCH_CREDENTIAL_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-credential
 FETCH_URL_PARTS_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md"
 FETCH_TIMEOUT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md"
 WEEK_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-10-flu-week-metadata-validation.md"
+LIVE_FETCH_BOUNDARY_PLAN="$ROOT_DIR/docs/plans/2026-06-12-live-fetch-boundaries.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
+CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
 PYTHON=${PYTHON:-python3}
 
 cleanup_bytecode() {
@@ -36,6 +38,7 @@ require_file() {
 
 for path in \
   ".gitignore" \
+  ".github/CODEOWNERS" \
   ".github/workflows/check.yml" \
   "CHANGES.md" \
   "Makefile" \
@@ -48,6 +51,7 @@ for path in \
   "docs/plans/2026-06-09-flu-shot-fetch-credential-guard.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-timeout-validation.md" \
   "docs/plans/2026-06-10-flu-week-metadata-validation.md" \
+  "docs/plans/2026-06-12-live-fetch-boundaries.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -61,16 +65,78 @@ for path in \
   require_file "$path"
 done
 
-if ! grep -Fq "workflow_dispatch:" "$CI_WORKFLOW" ||
-  ! grep -Fq "contents: read" "$CI_WORKFLOW" ||
-  ! grep -Fq "cancel-in-progress: true" "$CI_WORKFLOW" ||
-  ! grep -Fq "runs-on: ubuntu-24.04" "$CI_WORKFLOW" ||
-  ! grep -Fq "timeout-minutes: 10" "$CI_WORKFLOW" ||
-  ! grep -Fq 'python-version: ["3.10", "3.12", "3.14"]' "$CI_WORKFLOW" ||
-  ! grep -Fq "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" "$CI_WORKFLOW" ||
-  ! grep -Fq "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" "$CI_WORKFLOW" ||
-  ! grep -Fq "run: make check" "$CI_WORKFLOW"; then
-  printf '%s\n' "GitHub Actions must keep the pinned offline Python matrix contract." >&2
+workflow_paths=$(find "$ROOT_DIR/.github/workflows" -type f \( -name '*.yml' -o -name '*.yaml' \) -print | LC_ALL=C sort)
+if [ "$workflow_paths" != "$CI_WORKFLOW" ]; then
+  printf '%s\n' "The reviewed check workflow must be the only GitHub Actions workflow." >&2
+  exit 1
+fi
+
+codeowner_rules=$(grep -Ev '^[[:space:]]*(#|$)' "$CODEOWNERS" 2>/dev/null || true)
+if [ "$codeowner_rules" != '* @garethpaul' ]; then
+  printf '%s\n' "CODEOWNERS must retain repository-wide ownership." >&2
+  exit 1
+fi
+
+if grep -E '^[[:space:]]*(-[[:space:]]+)?uses:' "$CI_WORKFLOW" | grep -Ev '@[0-9a-f]{40}([[:space:]]+#.*)?$' >/dev/null; then
+  printf '%s\n' "GitHub Actions must use immutable commit revisions." >&2
+  exit 1
+fi
+
+workflow_uses=$(grep -E '^[[:space:]]*(-[[:space:]]+)?uses:' "$CI_WORKFLOW" | sed -E 's/^[[:space:]]*(-[[:space:]]+)?//' | LC_ALL=C sort)
+expected_workflow_uses=$(printf '%s\n' \
+  'uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3' \
+  'uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0' | LC_ALL=C sort)
+if [ "$workflow_uses" != "$expected_workflow_uses" ]; then
+  printf '%s\n' "GitHub Actions must use only the reviewed setup actions." >&2
+  exit 1
+fi
+
+if [ "$(grep -Ec '^permissions:$' "$CI_WORKFLOW")" -ne 1 ] ||
+  [ "$(grep -Ec '^  contents: read$' "$CI_WORKFLOW")" -ne 1 ] ||
+  grep -Eq 'write-all|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|actions:[[:space:]]*write' "$CI_WORKFLOW"; then
+  printf '%s\n' "GitHub Actions permissions must remain globally read-only." >&2
+  exit 1
+fi
+
+if [ "$(grep -Ec '^[[:space:]]*persist-credentials: false$' "$CI_WORKFLOW")" -ne 1 ] ||
+  grep -Eq '^[[:space:]]*persist-credentials: true$' "$CI_WORKFLOW"; then
+  printf '%s\n' "GitHub Actions checkout credentials must not persist." >&2
+  exit 1
+fi
+
+if [ "$(grep -Ec '^[[:space:]]*(-[[:space:]]+)?run:' "$CI_WORKFLOW")" -ne 1 ] ||
+  ! grep -Eq '^[[:space:]]*run: make check[[:space:]]*$' "$CI_WORKFLOW" ||
+  grep -Eq '^[[:space:]]*(if|continue-on-error):|\$\{\{[[:space:]]*if[[:space:]]' "$CI_WORKFLOW"; then
+  printf '%s\n' "GitHub Actions must run exactly the offline Make gate without bypasses." >&2
+  exit 1
+fi
+
+for workflow_contract in \
+  'push:' \
+  'branches:' \
+  '- master' \
+  'pull_request:' \
+  'workflow_dispatch:' \
+  'cancel-in-progress: true' \
+  'runs-on: ubuntu-24.04' \
+  'timeout-minutes: 10' \
+  'fail-fast: false' \
+  'python-version: ["3.10", "3.12", "3.14"]' \
+  'python-version: ${{ matrix.python-version }}'; do
+  if ! grep -Fq -- "$workflow_contract" "$CI_WORKFLOW"; then
+    printf '%s\n' "GitHub Actions workflow must keep contract: $workflow_contract" >&2
+    exit 1
+  fi
+done
+
+if ! awk '
+  /^  pull_request:$/ {
+    found = 1
+    if (getline <= 0 || $0 != "  push:") exit 1
+  }
+  END { if (!found) exit 1 }
+' "$CI_WORKFLOW"; then
+  printf '%s\n' "Pull request verification must apply without branch restrictions." >&2
   exit 1
 fi
 
@@ -80,7 +146,6 @@ if ! grep -Fq "without contacting live CDC endpoints" "$ROOT_DIR/SECURITY.md" ||
   printf '%s\n' "Project docs must record the offline hosted Python matrix." >&2
   exit 1
 fi
-
 "$PYTHON" -m py_compile "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py"
 "$PYTHON" -m unittest discover -s "$ROOT_DIR/tests" -p "test*.py"
 
@@ -98,9 +163,13 @@ if ! grep -Fq "parse_records" "$ROOT_DIR/flushot.py" ||
 fi
 
 if ! grep -Fq "1 <= int(week_num) <= 53" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'Influenza Season Week (\d+)' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq 'datetime.strptime(week_end, "%B %d, %Y")' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_parse_records_rejects_out_of_range_week_number" "$ROOT_DIR/tests/test_flushot.py" ||
-  ! grep -Fq "test_parse_records_rejects_invalid_week_ending_date" "$ROOT_DIR/tests/test_flushot.py"; then
+  ! grep -Fq "test_parse_records_rejects_invalid_week_ending_date" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_parse_records_accepts_week_boundaries" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "for week_number in (1, 53)" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_parse_records_rejects_week_zero" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Parser must validate CDC week numbers and calendar dates." >&2
   exit 1
 fi
@@ -126,11 +195,26 @@ fi
 if ! grep -Fq "def fetch_timeout" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "timeout_value = int(value)" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "1 <= timeout_value <= 300" "$ROOT_DIR/flushot.py" ||
-  ! grep -Fq "timeout=fetch_timeout(timeout)" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "timeout_seconds = fetch_timeout(timeout)" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "timeout=timeout_seconds" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_fetch_timeout_rejects_invalid_or_out_of_range_values" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "not-a-timeout" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "301" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Scraper must validate live fetch timeouts before opening network requests." >&2
+  exit 1
+fi
+
+if ! grep -Fq "class CDCNoRedirectHandler" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "validate_fetch_url(newurl)" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "CDC fetch redirects are not allowed" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "validate_fetch_url(response.geturl())" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "MAX_RESPONSE_BYTES = 2 * 1024 * 1024" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "def read_response_bytes" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_redirect_handler_revalidates_targets" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_read_response_rejects_streamed_oversize" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_fetch_html_uses_validated_bounded_response" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_fetch_html_rejects_untrusted_final_url" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Live CDC fetches must revalidate redirects and bound response resources." >&2
   exit 1
 fi
 
@@ -295,10 +379,15 @@ if ! grep -Fq "status: completed" "$WEEK_METADATA_PLAN"; then
   exit 1
 fi
 
+if ! grep -Fq "status: completed" "$LIVE_FETCH_BOUNDARY_PLAN" ||
+  ! grep -Fq "make check" "$LIVE_FETCH_BOUNDARY_PLAN"; then
+  printf '%s\n' "Live fetch boundary plan must be completed and record verification." >&2
+  exit 1
+fi
+
 if ! grep -Fq "status: completed" "$CI_PLAN" ||
   ! grep -Fq "make check" "$CI_PLAN"; then
   printf '%s\n' "CI baseline plan must be completed and record make check verification." >&2
   exit 1
 fi
-
 printf '%s\n' "flu-shot-data Python baseline checks passed."

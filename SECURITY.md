@@ -36,11 +36,17 @@ Helpful reports include:
   migration changes the data provenance boundary.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
+- Automatic redirects are rejected, final response URLs remain inside the
+  HTTPS CDC hostname boundary, and response bodies are bounded.
 - Parsed influenza week numbers and ending dates should be validated before
   public-health records are emitted.
 - GitHub Actions runs the offline `make check` matrix with read-only repository
   permissions so fixture, fetch URL, parser, and output guardrails stay
   enforced without contacting live CDC endpoints.
+- Checkout credentials are not persisted, and workflow actions remain pinned
+  to immutable commit revisions.
+- Repository-wide CODEOWNERS records ownership for parser, workflow, and data
+  provenance changes; branch rules must require review for enforcement.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 

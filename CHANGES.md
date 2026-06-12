@@ -6,6 +6,13 @@
   calendar dates before emitting records.
 - Added a pinned, least-privilege GitHub Actions matrix that runs the offline
   baseline on Python 3.10, 3.12, and 3.14.
+- Disabled persisted checkout credentials and added focused workflow policy
+  checks for triggers, permissions, matrix values, actions, and commands.
+- Rejected automatic redirects, revalidated final response URLs, and limited
+  live response bodies to 2 MiB.
+- Added exact week 1 and 53 acceptance plus week 0 rejection coverage.
+- Added repository-wide ownership and corrected contributor guidance for the
+  dependency-free parser workflow.
 - Extended the baseline script and docs to require the hosted CI verification
   path.
 

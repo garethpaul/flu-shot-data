@@ -80,11 +80,14 @@ calendar dates before records are written.
 Live fetch URLs must not include query strings or fragments.
 Live fetch timeouts are bounded before `urlopen` is called; invalid or
 out-of-range timeout values fall back to 30 seconds.
+Automatic redirects are rejected, and final response URLs are revalidated
+against the same HTTPS CDC host policy. Live response bodies are limited to
+2 MiB while the validated socket timeout bounds stalled operations.
 
 The `make lint`, `make test`, and `make build` aliases run the same offline
 baseline while this project has no narrower installed gates.
 GitHub Actions runs the same offline `make check` baseline for pushes and pull
-requests on Python 3.10, 3.12, and 3.14.
+Checkout uses read-only permissions without persisting the GitHub token.
 
 Fixture tests do not prove that the current live CDC page still has compatible
 markup. Validate live scraping separately before publishing current data.
@@ -135,6 +138,8 @@ markup. Validate live scraping separately before publishing current data.
   fetch timeout validation coverage.
 - See `docs/plans/2026-06-10-ci-baseline.md` for the hosted GitHub Actions
   baseline.
+- See `docs/plans/2026-06-12-live-fetch-boundaries.md` for redirect and response
+  size guards.
 
 ## Contributing
 

@@ -37,6 +37,8 @@ Current baseline:
   opened.
 - Live fetch timeout values are bounded before `urlopen` is called, with
   invalid values falling back to 30 seconds.
+- Automatic redirects are rejected and final response URLs are revalidated
+  against the CDC hostname policy, with a 2 MiB response ceiling.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -53,6 +55,8 @@ Current baseline:
   while no narrower gates are installed.
 - GitHub Actions runs the offline `make check` baseline on Python 3.10, 3.12,
   and 3.14 for pushes and pull requests.
+- Hosted checkout credentials are not persisted and actions remain pinned to
+  immutable revisions.
 
 Next priorities:
 
