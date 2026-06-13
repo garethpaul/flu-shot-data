@@ -1,7 +1,7 @@
 ---
 title: Response Content-Type Boundary
 type: security
-status: in_progress
+status: completed
 date: 2026-06-13
 ---
 
@@ -73,3 +73,28 @@ Files: `scripts/check-baseline.sh`, `README.md`, `SECURITY.md`, `VISION.md`, `CH
   secret scans.
 - Take one bounded exact-head pull-request and CodeQL snapshot after push; do
   not poll.
+
+## Work Completed
+
+- Added a standard-library `Content-Type` parser that requires `text/html` and
+  absent or UTF-8-compatible charset metadata.
+- Validated metadata after final-URL validation and before response-body reads.
+- Added accepted metadata, rejected metadata, and zero-read ordering tests.
+- Extended the static baseline and repository guidance with validator, test,
+  ordering, documentation, and completed-plan contracts.
+
+## Verification Completed
+
+- Focused response content-type tests and the pristine copied baseline passed
+  all 25 offline tests.
+- `make check`, `make lint`, `make test`, and `make build` passed all 25 offline
+  tests against the final implementation.
+- Python compilation, `sh -n scripts/check-baseline.sh`, `git diff --check`,
+  and the intended-file secret scan passed.
+- The validator removal mutation failed the 25-test suite.
+- The media allowlist mutation failed the 25-test suite.
+- The validation ordering mutation failed the 25-test suite because the
+  rejected response body was read.
+- The hosted pull-request check is not available before push; one bounded
+  exact-head snapshot will be recorded in the engineering tracker without
+  polling.

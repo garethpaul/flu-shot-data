@@ -18,8 +18,10 @@ class FakeResponse:
         self.body = BytesIO(body)
         self.url = url
         self.headers = headers or {}
+        self.read_calls = 0
 
     def read(self, size=-1):
+        self.read_calls += 1
         return self.body.read(size)
 
     def geturl(self):
@@ -270,10 +272,48 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "maximum allowed size"):
             flushot.read_response_bytes(response, max_bytes=10)
 
+    def test_validate_response_content_type_accepts_utf8_html(self):
+        for content_type in (
+            "text/html",
+            "text/html; charset=UTF-8",
+            "text/html; charset=utf8",
+            "TEXT/HTML; Charset=UTF-8",
+        ):
+            with self.subTest(content_type=content_type):
+                flushot.validate_html_content_type({"Content-Type": content_type})
+
+    def test_validate_response_content_type_rejects_missing_or_incompatible_values(self):
+        rejected = (
+            ({}, "declare an HTML Content-Type"),
+            ({"Content-Type": "application/json"}, "must be text/html"),
+            ({"Content-Type": "text/html; charset=iso-8859-1"}, "must use UTF-8"),
+        )
+
+        for headers, message in rejected:
+            with self.subTest(headers=headers):
+                with self.assertRaisesRegex(ValueError, message):
+                    flushot.validate_html_content_type(headers)
+
+    def test_fetch_html_rejects_content_type_before_reading_body(self):
+        response = FakeResponse(
+            body=b'{"not": "html"}',
+            headers={"Content-Type": "application/json"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with self.assertRaisesRegex(ValueError, "must be text/html"):
+                flushot.fetch_html(max_bytes=20)
+
+        self.assertEqual(0, response.read_calls)
+
     def test_fetch_html_uses_validated_bounded_response(self):
         response = FakeResponse(
             body=b"<html>ok</html>",
-            headers={"Content-Length": "15"},
+            headers={
+                "Content-Length": "15",
+                "Content-Type": "text/html; charset=utf-8",
+            },
         )
         opener = FakeOpener(response)
 
