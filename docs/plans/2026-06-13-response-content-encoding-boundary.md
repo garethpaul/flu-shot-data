@@ -1,7 +1,7 @@
 ---
 title: Response Content Encoding Boundary
 type: security
-status: planned
+status: completed
 date: 2026-06-13
 ---
 
@@ -24,8 +24,8 @@ them because this dependency-free client supports only absent or explicit
 
 - R1. Live responses may omit `Content-Encoding` or declare exactly
   case-insensitive `identity` with surrounding whitespace ignored.
-- R2. Blank, gzip, deflate, Brotli, comma-separated, and other encoding values
-  must fail with a generic `ValueError`.
+- R2. Blank, gzip, deflate, Brotli, duplicate, comma-separated, and other
+  encoding values must fail with a generic `ValueError`.
 - R3. Encoding metadata must be validated after final URL and content-type
   validation but before the first response-body read.
 - R4. Focused fetch tests must prove accepted and rejected values and assert
@@ -91,8 +91,30 @@ Files: `README.md`, `SECURITY.md`, `VISION.md`, `CHANGES.md`, `AGENTS.md`
 
 ## Work Completed
 
-Pending implementation.
+- Added an identity-only response metadata validator that accepts an absent
+  header or normalized `identity` and rejects every other value generically.
+- Invoked content-encoding validation after final URL and HTML media metadata
+  validation but before the bounded response reader.
+- Added complete-fetch coverage for absent and normalized identity values plus
+  blank, gzip, deflate, Brotli, duplicate, combined, and unknown rejection
+  before reads.
+- Extended the offline checker and repository guidance for the transport
+  representation boundary.
 
 ## Verification Completed
 
-Pending implementation and verification.
+- `python3 -m unittest discover -s tests -p 'test_flushot.py' -k
+  'content_encoding' -v` passed both focused tests on Python 3.12.11.
+- The complete 29-test offline suite passed.
+- The validator removal mutation failed because unsupported encodings reached
+  the response path.
+- The gzip allowlist mutation failed the exact rejection regressions.
+- The duplicate-field mutation failed the duplicate-header regression.
+- The validation ordering mutation failed because rejected bodies were read.
+- The no-read assertion mutation failed the named-test static contract.
+- The plan evidence mutation failed the completed-evidence contract.
+- `make check`, `make lint`, `make test`, and `make build` passed.
+- Python compilation, shell syntax, `git diff --check`, and intended-file
+  secret and artifact scans are included in final-tree verification.
+- The hosted pull-request check and code-scanning snapshot will be recorded
+  against the exact pushed head in the external engineering tracker.

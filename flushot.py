@@ -159,6 +159,28 @@ def validate_html_content_type(headers) -> None:
         raise ValueError("CDC response Content-Type must use UTF-8.")
 
 
+def validate_content_encoding(headers) -> None:
+    get_all = getattr(headers, "get_all", None)
+    if callable(get_all):
+        content_encodings = get_all("Content-Encoding", [])
+    else:
+        content_encoding = headers.get("Content-Encoding")
+        content_encodings = [] if content_encoding is None else [content_encoding]
+
+    if not content_encodings:
+        return
+    if len(content_encodings) != 1:
+        raise ValueError("CDC response Content-Encoding must be identity.")
+
+    content_encoding = content_encodings[0]
+    if not isinstance(content_encoding, str):
+        raise ValueError("CDC response Content-Encoding must be identity.")
+
+    normalized_encoding = content_encoding.strip().lower()
+    if normalized_encoding != "identity":
+        raise ValueError("CDC response Content-Encoding must be identity.")
+
+
 def read_response_bytes(response, max_bytes: int) -> bytes:
     if max_bytes < 1:
         raise ValueError("CDC response size limit must be positive.")
@@ -213,6 +235,7 @@ def fetch_html(
     with opener.open(request, timeout=timeout_seconds) as response:
         validate_fetch_url(response.geturl())
         validate_html_content_type(response.headers)
+        validate_content_encoding(response.headers)
         response_bytes = read_response_bytes(response, max_bytes)
         return decode_html_bytes(response_bytes)
 

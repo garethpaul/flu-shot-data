@@ -18,6 +18,7 @@ LIVE_FETCH_BOUNDARY_PLAN="$ROOT_DIR/docs/plans/2026-06-12-live-fetch-boundaries.
 DUPLICATE_REGION_PLAN="$ROOT_DIR/docs/plans/2026-06-12-duplicate-region-guard.md"
 CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-type-boundary.md"
 STRICT_UTF8_PLAN="$ROOT_DIR/docs/plans/2026-06-13-strict-utf8-response-decoding.md"
+CONTENT_ENCODING_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-encoding-boundary.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -57,6 +58,8 @@ for path in \
   "docs/plans/2026-06-12-live-fetch-boundaries.md" \
   "docs/plans/2026-06-12-duplicate-region-guard.md" \
   "docs/plans/2026-06-13-response-content-type-boundary.md" \
+  "docs/plans/2026-06-13-strict-utf8-response-decoding.md" \
+  "docs/plans/2026-06-13-response-content-encoding-boundary.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -266,6 +269,64 @@ from pathlib import Path
 
 source = Path(sys.argv[1]).read_text()
 tests = Path(sys.argv[2]).read_text()
+validator = source.split("def validate_content_encoding", 1)[-1].split(
+    "\ndef read_response_bytes", 1
+)[0]
+required_validator = (
+    'get_all = getattr(headers, "get_all", None)',
+    'content_encodings = get_all("Content-Encoding", [])',
+    "content_encodings = [] if content_encoding is None else [content_encoding]",
+    "if not content_encodings:",
+    "if len(content_encodings) != 1:",
+    "content_encoding = content_encodings[0]",
+    "normalized_encoding = content_encoding.strip().lower()",
+    'if normalized_encoding != "identity":',
+    'raise ValueError("CDC response Content-Encoding must be identity.")',
+)
+if any(item not in validator for item in required_validator):
+    raise SystemExit("Live responses must allow only absent or identity content encoding.")
+
+fetch = source.split("def fetch_html", 1)[-1].split("\ndef parse_week_metadata", 1)[0]
+ordered = (
+    "validate_fetch_url(response.geturl())",
+    "validate_html_content_type(response.headers)",
+    "validate_content_encoding(response.headers)",
+    "response_bytes = read_response_bytes(response, max_bytes)",
+    "return decode_html_bytes(response_bytes)",
+)
+positions = [fetch.find(item) for item in ordered]
+if -1 in positions or positions != sorted(positions) or len(set(positions)) != len(positions):
+    raise SystemExit("Content encoding must be validated before reading response bytes.")
+
+accepted_name = "def test_fetch_html_accepts_absent_or_identity_content_encoding"
+rejected_name = "def test_fetch_html_rejects_unsupported_content_encoding_before_reading_body"
+if tests.count(accepted_name) != 1 or tests.count(rejected_name) != 1:
+    raise SystemExit("Focused tests must preserve both content-encoding regressions.")
+accepted_test = tests.split(accepted_name, 1)[-1].split("\n    def ", 1)[0]
+rejected_test = tests.split(rejected_name, 1)[-1].split("\n    def ", 1)[0]
+required_accepted = (
+    'for content_encoding in (None, "identity", " IDENTITY ")',
+    "self.assertGreater(response.read_calls, 0)",
+)
+required_rejected = (
+    'for content_encoding in ("", "gzip", "deflate", "br", "identity, gzip")',
+    "flushot.fetch_html(max_bytes=40)",
+    'duplicate_headers["Content-Encoding"] = "identity"',
+    'duplicate_headers["Content-Encoding"] = "gzip"',
+    "self.assertEqual(0, response.read_calls)",
+)
+if any(item not in accepted_test for item in required_accepted) or any(
+    item not in rejected_test for item in required_rejected
+):
+    raise SystemExit("Focused tests must preserve identity-only encoding and no-read rejection coverage.")
+PY
+
+python3 - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+tests = Path(sys.argv[2]).read_text()
 decode = source.split("def decode_html_bytes(", 1)[-1].split("\ndef fetch_html", 1)[0]
 fetch = source.split("def fetch_html(", 1)[-1].split("\ndef parse_week_metadata", 1)[0]
 
@@ -359,6 +420,15 @@ if ! grep -Fq "make check" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.csv" "$ROOT_DIR/README.md" ||
   ! grep -Fq "flu.json" "$ROOT_DIR/README.md"; then
   printf '%s\n' "README must document verification, percent normalization, and generated outputs." >&2
+  exit 1
+fi
+
+if ! grep -Fq "absent or one explicit identity Content-Encoding" "$ROOT_DIR/README.md" ||
+  ! grep -Fq 'absent or one explicit identity `Content-Encoding`' "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq "identity-only content encoding" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "identity-only response content encoding" "$ROOT_DIR/CHANGES.md" ||
+  ! grep -Fq 'identity-only `Content-Encoding`' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Repository guidance must document the response content-encoding boundary." >&2
   exit 1
 fi
 
@@ -547,5 +617,31 @@ if statuses != ["status: completed"] or any(item not in plan for item in require
     raise SystemExit(
         "Strict UTF-8 response plan must record completed status and actual verification."
     )
+PY
+
+python3 - "$CONTENT_ENCODING_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "validator removal mutation failed",
+    "gzip allowlist mutation failed",
+    "duplicate-field mutation failed",
+    "validation ordering mutation failed",
+    "no-read assertion mutation failed",
+    "plan evidence mutation failed",
+    "hosted pull-request check",
+)
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Response content-encoding plan must record completed status and actual verification."
+    )
+verification = plan.split("## Verification Completed\n", 1)[-1]
+if re.search(r"\b(?:pending|todo|tbd|not run)\b", verification, re.IGNORECASE):
+    raise SystemExit("Response content-encoding verification must not remain pending.")
 PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

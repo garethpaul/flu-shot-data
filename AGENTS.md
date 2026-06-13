@@ -51,6 +51,8 @@ CDC weekly influenza summary table into CSV and JSON records.
 - Reject automatic redirects and keep live response bodies bounded.
 - Decode bounded live response bodies as strict UTF-8 and keep malformed-body
   errors free of response content.
+- Preserve identity-only `Content-Encoding` validation before body reads; do
+  not add transparent decompression without a separate bounded design.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 
 ## Agent workflow

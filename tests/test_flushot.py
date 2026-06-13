@@ -2,6 +2,7 @@ import csv
 import json
 import tempfile
 import unittest
+from email.message import Message
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -323,6 +324,60 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual("<html>ok</html>", html)
         self.assertEqual(45, opener.timeout)
         self.assertEqual(flushot.CDC_FLU_URL, opener.request.full_url)
+
+    def test_fetch_html_accepts_absent_or_identity_content_encoding(self):
+        for content_encoding in (None, "identity", " IDENTITY "):
+            headers = {"Content-Type": "text/html; charset=utf-8"}
+            if content_encoding is not None:
+                headers["Content-Encoding"] = content_encoding
+            response = FakeResponse(body=b"<html>ok</html>", headers=headers)
+            opener = FakeOpener(response)
+
+            with self.subTest(content_encoding=content_encoding):
+                with patch("flushot.build_opener", return_value=opener):
+                    self.assertEqual(
+                        "<html>ok</html>",
+                        flushot.fetch_html(max_bytes=20),
+                    )
+                self.assertGreater(response.read_calls, 0)
+
+    def test_fetch_html_rejects_unsupported_content_encoding_before_reading_body(self):
+        for content_encoding in ("", "gzip", "deflate", "br", "identity, gzip"):
+            response = FakeResponse(
+                body=b"encoded private response",
+                headers={
+                    "Content-Type": "text/html; charset=utf-8",
+                    "Content-Encoding": content_encoding,
+                },
+            )
+            opener = FakeOpener(response)
+
+            with self.subTest(content_encoding=content_encoding):
+                with patch("flushot.build_opener", return_value=opener):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        r"^CDC response Content-Encoding must be identity\.$",
+                    ):
+                        flushot.fetch_html(max_bytes=40)
+                self.assertEqual(0, response.read_calls)
+
+        duplicate_headers = Message()
+        duplicate_headers["Content-Type"] = "text/html; charset=utf-8"
+        duplicate_headers["Content-Encoding"] = "identity"
+        duplicate_headers["Content-Encoding"] = "gzip"
+        response = FakeResponse(
+            body=b"encoded private response",
+            headers=duplicate_headers,
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with self.assertRaisesRegex(
+                ValueError,
+                r"^CDC response Content-Encoding must be identity\.$",
+            ):
+                flushot.fetch_html(max_bytes=40)
+        self.assertEqual(0, response.read_calls)
 
     def test_fetch_html_preserves_valid_multibyte_utf8(self):
         expected = "<html>caf\u00e9</html>"

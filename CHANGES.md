@@ -2,6 +2,10 @@
 
 ## 2026-06-13
 
+- Enforced identity-only response content encoding before any live CDC body
+  read and rejected compressed, duplicated, combined, blank, or unknown encodings.
+- Added accepted identity and no-read rejection coverage plus mutation-sensitive
+  static contracts.
 - Rejected malformed UTF-8 in bounded live CDC response bodies without leaking
   response content in decode errors.
 - Added valid multibyte and malformed response regression coverage plus a
