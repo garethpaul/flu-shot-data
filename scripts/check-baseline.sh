@@ -20,6 +20,7 @@ CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-type-boundar
 STRICT_UTF8_PLAN="$ROOT_DIR/docs/plans/2026-06-13-strict-utf8-response-decoding.md"
 CONTENT_ENCODING_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-encoding-boundary.md"
 DUPLICATE_CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-duplicate-response-content-type.md"
+LOCATION_INDEPENDENT_MAKE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-location-independent-make.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -62,6 +63,7 @@ for path in \
   "docs/plans/2026-06-13-strict-utf8-response-decoding.md" \
   "docs/plans/2026-06-13-response-content-encoding-boundary.md" \
   "docs/plans/2026-06-13-duplicate-response-content-type.md" \
+  "docs/plans/2026-06-13-location-independent-make.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -74,6 +76,26 @@ for path in \
   "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
   require_file "$path"
 done
+
+if ! grep -Fq 'ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))' "$ROOT_DIR/Makefile" ||
+  ! grep -Fq '"$(ROOT)/scripts/check-baseline.sh"' "$ROOT_DIR/Makefile"; then
+  printf '%s\n' "Makefile verification must resolve the checker from the loaded Makefile." >&2
+  exit 1
+fi
+
+if ! grep -Fq '(cd "$ROOT_DIR" &&' "$ROOT_DIR/scripts/check-baseline.sh" ||
+  ! grep -Fq '"$PYTHON" -m unittest discover -s tests -p "test*.py")' "$ROOT_DIR/scripts/check-baseline.sh"; then
+  printf '%s\n' "Offline Python verification must run from the repository root." >&2
+  exit 1
+fi
+
+if ! grep -Fq "status: completed" "$LOCATION_INDEPENDENT_MAKE_PLAN" ||
+  ! grep -Fq "from /tmp" "$LOCATION_INDEPENDENT_MAKE_PLAN" ||
+  ! grep -Fq "absolute Makefile path" "$ROOT_DIR/README.md" ||
+  ! grep -Fq "Made offline verification independent" "$ROOT_DIR/CHANGES.md"; then
+  printf '%s\n' "Location-independent Make plan and guidance must record completed external verification." >&2
+  exit 1
+fi
 
 workflow_paths=$(find "$ROOT_DIR/.github/workflows" -type f \( -name '*.yml' -o -name '*.yaml' \) -print | LC_ALL=C sort)
 if [ "$workflow_paths" != "$CI_WORKFLOW" ]; then
@@ -165,8 +187,9 @@ if ! grep -Fq "without contacting live CDC endpoints" "$ROOT_DIR/SECURITY.md" ||
   printf '%s\n' "Project docs must record the offline hosted Python matrix." >&2
   exit 1
 fi
-"$PYTHON" -m py_compile "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py"
-"$PYTHON" -m unittest discover -s "$ROOT_DIR/tests" -p "test*.py"
+(cd "$ROOT_DIR" &&
+  "$PYTHON" -m py_compile flushot.py tests/test_flushot.py &&
+  "$PYTHON" -m unittest discover -s tests -p "test*.py")
 
 if grep -Eq 'mechanize|cookielib|simplejson|BeautifulSoup|print ' "$ROOT_DIR/flushot.py" ||
   grep -Fq "http://www.cdc.gov/flu/weekly/" "$ROOT_DIR/flushot.py"; then
