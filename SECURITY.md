@@ -40,6 +40,8 @@ Helpful reports include:
   HTTPS CDC hostname boundary, and response bodies are bounded.
 - Live response metadata must declare `text/html`; explicit charsets must be
   UTF-8-compatible, and validation must occur before response-body reads.
+- Bounded live response bodies must decode as strict UTF-8. Malformed bytes
+  fail with a generic error that does not include response content.
 - Parsed influenza week numbers and ending dates should be validated before
   public-health records are emitted.
 - Duplicate region labels should fail parsing before public-health outputs are

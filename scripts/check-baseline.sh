@@ -17,6 +17,7 @@ WEEK_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-10-flu-week-metadata-validation
 LIVE_FETCH_BOUNDARY_PLAN="$ROOT_DIR/docs/plans/2026-06-12-live-fetch-boundaries.md"
 DUPLICATE_REGION_PLAN="$ROOT_DIR/docs/plans/2026-06-12-duplicate-region-guard.md"
 CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-type-boundary.md"
+STRICT_UTF8_PLAN="$ROOT_DIR/docs/plans/2026-06-13-strict-utf8-response-decoding.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -259,6 +260,45 @@ if -1 in positions or positions != sorted(positions) or len(set(positions)) != l
     raise SystemExit("Final URL and response metadata validation must remain ahead of body reads.")
 PY
 
+python3 - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+tests = Path(sys.argv[2]).read_text()
+decode = source.split("def decode_html_bytes(", 1)[-1].split("\ndef fetch_html", 1)[0]
+fetch = source.split("def fetch_html(", 1)[-1].split("\ndef parse_week_metadata", 1)[0]
+
+required_decode = (
+    'body.decode("utf-8")',
+    "except UnicodeDecodeError:",
+    'raise ValueError("CDC response body must be valid UTF-8.") from None',
+)
+required_tests = (
+    "test_fetch_html_preserves_valid_multibyte_utf8",
+    "test_fetch_html_rejects_malformed_utf8_without_leaking_body",
+    'b"<html>private-\\xff-value</html>"',
+    "bounded_read.assert_called_once_with(response, 40)",
+    "self.assertIsNone(error.exception.__cause__)",
+)
+fetch_contract = (
+    "validate_fetch_url(response.geturl())",
+    "validate_html_content_type(response.headers)",
+    "response_bytes = read_response_bytes(response, max_bytes)",
+    "return decode_html_bytes(response_bytes)",
+)
+positions = [fetch.find(fragment) for fragment in fetch_contract]
+
+if any(fragment not in decode for fragment in required_decode):
+    raise SystemExit("Live response bytes must use strict UTF-8 with generic error translation.")
+if 'errors="replace"' in source or 'errors="ignore"' in source:
+    raise SystemExit("Live response decoding must not use lossy UTF-8 error handling.")
+if any(fragment not in tests for fragment in required_tests):
+    raise SystemExit("Strict UTF-8 behavior must retain focused valid and malformed response tests.")
+if -1 in positions or positions != sorted(positions) or len(set(positions)) != len(positions):
+    raise SystemExit("Strict UTF-8 decoding must remain after bounded response reading.")
+PY
+
 if ! grep -Fq "lint: check" "$ROOT_DIR/Makefile" ||
   ! grep -Fq "test: check" "$ROOT_DIR/Makefile" ||
   ! grep -Fq "build: check" "$ROOT_DIR/Makefile"; then
@@ -484,6 +524,28 @@ required = (
 if statuses != ["status: completed"] or any(item not in plan for item in required):
     raise SystemExit(
         "Response content-type plan must record completed status and actual verification."
+    )
+PY
+
+python3 - "$STRICT_UTF8_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "lossy decode mutation failed",
+    "exception translation mutation failed",
+    "malformed-byte test mutation failed",
+    "decode ordering mutation failed",
+    "hosted pull-request check",
+)
+
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Strict UTF-8 response plan must record completed status and actual verification."
     )
 PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

@@ -1,7 +1,7 @@
 ---
 title: Strict UTF-8 Response Decoding
 type: security
-status: planned
+status: completed
 date: 2026-06-13
 ---
 
@@ -26,8 +26,8 @@ UTF-8 sequences before the HTML parser sees them.
   not be used for CDC response data.
 - R3. `UnicodeDecodeError` must become a generic `ValueError` that does not
   include response bytes, decoded fragments, URLs, or exception details.
-- R4. A focused test must accept valid UTF-8 and reject malformed bytes through
-  `fetch_html` after exactly one bounded read attempt.
+- R4. Focused tests must accept valid UTF-8 and reject malformed bytes through
+  `fetch_html`, invoking the bounded response reader exactly once per fetch.
 - R5. Existing content-type-before-read and final-URL-before-read ordering must
   remain unchanged.
 - R6. Static contracts must reject lossy decoding, missing exception handling,
@@ -89,8 +89,34 @@ Files: `README.md`, `SECURITY.md`, `VISION.md`, `CHANGES.md`, `AGENTS.md`
 
 ## Work Completed
 
-Pending implementation.
+- Added `decode_html_bytes` with strict UTF-8 decoding and a generic
+  `ValueError` raised without exception chaining.
+- Kept final URL and response metadata validation before the bounded body read,
+  then decoded only the bytes returned by `read_response_bytes`.
+- Added complete-fetch coverage for valid multibyte text and malformed bytes,
+  including a one-call assertion around the bounded reader and a no-leak error
+  assertion.
+- Extended the offline checker and repository guidance for the strict decode
+  boundary.
 
 ## Verification Completed
 
-Pending implementation and verification.
+- `python3 -m unittest discover -s tests -p 'test_flushot.py' -k 'utf8' -v`
+  passed 3 focused tests on Python 3.12.11.
+- The lossy decode mutation failed because malformed bytes no longer raised the
+  required error.
+- The exception translation mutation failed because the raw
+  `UnicodeDecodeError` did not match the generic public error contract.
+- The malformed-byte test mutation failed because valid replacement bytes no
+  longer exercised the rejection path.
+- The decode ordering mutation failed because bypassing `read_response_bytes`
+  violated the bounded-reader call assertion.
+- `make check`, `make lint`, `make test`, and `make build` each passed all 27
+  tests on Python 3.12.11.
+- `python3 -m py_compile flushot.py tests/test_flushot.py`,
+  `sh -n scripts/check-baseline.sh`, and `git diff --check` passed.
+- Intended-path artifact and secret scans found no generated files or embedded
+  credentials.
+- The hosted pull-request check and code-scanning snapshot are recorded against
+  the exact pushed head in the external engineering tracker. Embedding that SHA
+  here would create a new head without exact-head hosted evidence.

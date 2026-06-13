@@ -2,6 +2,10 @@
 
 ## 2026-06-13
 
+- Rejected malformed UTF-8 in bounded live CDC response bodies without leaking
+  response content in decode errors.
+- Added valid multibyte and malformed response regression coverage plus a
+  static strict-decoding contract.
 - Required live CDC responses to declare `text/html` with no charset or a
   UTF-8-compatible charset before reading response bytes.
 - Added accepted metadata, rejection, and guard-before-read regression tests.
