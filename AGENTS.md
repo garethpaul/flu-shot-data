@@ -49,6 +49,8 @@ CDC weekly influenza summary table into CSV and JSON records.
 - Revalidate redirect targets and final response URLs against the CDC hostname
   policy.
 - Reject automatic redirects and keep live response bodies bounded.
+- Decode bounded live response bodies as strict UTF-8 and keep malformed-body
+  errors free of response content.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 
 ## Agent workflow

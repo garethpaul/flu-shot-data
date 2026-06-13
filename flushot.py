@@ -186,6 +186,13 @@ def read_response_bytes(response, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+def decode_html_bytes(body: bytes) -> str:
+    try:
+        return body.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ValueError("CDC response body must be valid UTF-8.") from None
+
+
 def fetch_html(
     url: str = CDC_FLU_URL,
     timeout: int = 30,
@@ -206,7 +213,8 @@ def fetch_html(
     with opener.open(request, timeout=timeout_seconds) as response:
         validate_fetch_url(response.geturl())
         validate_html_content_type(response.headers)
-        return read_response_bytes(response, max_bytes).decode("utf-8", errors="replace")
+        response_bytes = read_response_bytes(response, max_bytes)
+        return decode_html_bytes(response_bytes)
 
 
 def parse_week_metadata(html: str) -> tuple[str, str]:

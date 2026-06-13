@@ -86,7 +86,8 @@ Automatic redirects are rejected, and final response URLs are revalidated
 against the same HTTPS CDC host policy. Live response bodies are limited to
 2 MiB while the validated socket timeout bounds stalled operations.
 Responses must declare `text/html` with no charset or a UTF-8-compatible
-charset before the first body read.
+charset before the first body read. Bounded response bytes are decoded as
+strict UTF-8; malformed byte sequences fail without exposing response content.
 
 The `make lint`, `make test`, and `make build` aliases run the same offline
 baseline while this project has no narrower installed gates.
@@ -148,6 +149,8 @@ markup. Validate live scraping separately before publishing current data.
   size guards.
 - See `docs/plans/2026-06-13-response-content-type-boundary.md` for HTML media
   type, charset, and guard-before-read coverage.
+- See `docs/plans/2026-06-13-strict-utf8-response-decoding.md` for strict body
+  decoding and malformed-response coverage.
 
 ## Contributing
 

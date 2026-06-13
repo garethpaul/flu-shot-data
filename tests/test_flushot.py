@@ -324,6 +324,41 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual(45, opener.timeout)
         self.assertEqual(flushot.CDC_FLU_URL, opener.request.full_url)
 
+    def test_fetch_html_preserves_valid_multibyte_utf8(self):
+        expected = "<html>caf\u00e9</html>"
+        response = FakeResponse(
+            body=expected.encode("utf-8"),
+            headers={"Content-Type": "text/html; charset=utf-8"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            html = flushot.fetch_html(max_bytes=30)
+
+        self.assertEqual(expected, html)
+
+    def test_fetch_html_rejects_malformed_utf8_without_leaking_body(self):
+        response = FakeResponse(
+            body=b"<html>private-\xff-value</html>",
+            headers={"Content-Type": "text/html; charset=utf-8"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with patch(
+                "flushot.read_response_bytes",
+                wraps=flushot.read_response_bytes,
+            ) as bounded_read:
+                with self.assertRaisesRegex(
+                    ValueError,
+                    r"^CDC response body must be valid UTF-8\.$",
+                ) as error:
+                    flushot.fetch_html(max_bytes=40)
+
+        bounded_read.assert_called_once_with(response, 40)
+        self.assertNotIn("private", str(error.exception))
+        self.assertIsNone(error.exception.__cause__)
+
     def test_fetch_html_rejects_untrusted_final_url(self):
         response = FakeResponse(body=b"ignored", url="https://example.com/private")
         opener = FakeOpener(response)
