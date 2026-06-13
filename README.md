@@ -64,6 +64,10 @@ Run the offline baseline:
 make check
 ```
 
+Use the absolute Makefile path to run the same gate from another working
+directory. Verification resolves the checker relative to the loaded Makefile
+and runs Python from the repository root rather than the caller's directory.
+
 The baseline compiles the Python files, runs fixture-based unit tests, and
 checks that the scraper stays Python 3 compatible, uses HTTPS, and keeps
 fetching, parsing, and writing separated. Fetch URLs are validated as HTTPS

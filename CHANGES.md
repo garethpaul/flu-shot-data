@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Made offline verification independent of the caller's working directory by
+  resolving the baseline checker from the loaded Makefile.
 - Rejected duplicate CDC response Content-Type fields before body reads.
 - Enforced identity-only response content encoding before any live CDC body
   read and rejected compressed, duplicated, combined, blank, or unknown encodings.

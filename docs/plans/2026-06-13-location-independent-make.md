@@ -2,7 +2,7 @@
 title: Location-Independent Flu Verification
 type: reliability
 date: 2026-06-13
-status: planned
+status: completed
 execution: code
 ---
 
@@ -17,19 +17,22 @@ documented gate works when Make is invoked outside the checkout.
 
 - R1. Derive the repository root from `MAKEFILE_LIST`.
 - R2. Invoke `scripts/check-baseline.sh` through its repository-rooted path.
-- R3. Add a static contract that rejects caller-directory-relative invocation.
-- R4. Preserve parser behavior, fixtures, output schema, workflow, provenance,
+- R3. Run the checker's Python compilation and unittest discovery from the
+  repository root.
+- R4. Add static contracts that reject caller-directory-relative checker or
+  Python execution.
+- R5. Preserve parser behavior, fixtures, output schema, workflow, provenance,
   metadata, redirect, timeout, byte-limit, response-header, and decoding
   boundaries.
-- R5. Record actual root and external-directory verification before completion.
+- R6. Record actual root and external-directory verification before completion.
 
 ## Verification Plan
 
 - Run `make check`, `make lint`, `make test`, and `make build` at repository
   root.
 - Run the full gate from `/tmp` through the absolute Makefile path.
-- Reject isolated hostile root-derivation, checker-path, documentation,
-  plan-status, and verification-evidence mutations.
+- Reject isolated hostile root-derivation, checker-path, Python-working-directory,
+  documentation, plan-status, and verification-evidence mutations.
 - Run Python compilation, shell syntax, `git diff --check`, exact-path review,
   secret scanning, and generated-artifact inspection.
 
@@ -40,8 +43,24 @@ documented gate works when Make is invoked outside the checkout.
 
 ## Work Completed
 
-Pending implementation.
+- Derived the repository root from the loaded Makefile and invoked the offline
+  checker through that absolute path.
+- Ran Python compilation and unittest discovery from the repository root so
+  imports remain deterministic outside the checkout.
+- Extended the baseline with rooted-Makefile, completed-plan, external-run, and
+  synchronized-guidance contracts.
+- Preserved parser, fixture, output-schema, workflow, provenance, metadata,
+  redirect, timeout, byte-limit, response-header, and decoding behavior.
 
 ## Verification Completed
 
-Pending implementation and verification.
+- `make check`, `make lint`, `make test`, and `make build` passed at repository
+  root.
+- The full gate passed from /tmp through the absolute Makefile path.
+- Six isolated hostile root-derivation, checker-path,
+  Python-working-directory, documentation, plan-status, and
+  verification-evidence mutations were rejected.
+- Python compilation, shell syntax, `git diff --check`, exact-path review,
+  added-line secret scanning, and generated-artifact inspection passed.
+- No live CDC request was made, so current production metadata and markup
+  compatibility are not claimed.
