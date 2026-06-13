@@ -43,6 +43,8 @@ Current baseline:
   charset declarations before any body read.
 - Bounded response bytes are decoded strictly as UTF-8, with malformed bodies
   rejected before parsing.
+- Live responses enforce identity-only content encoding before bounded body
+  reads; compressed, duplicated, or transformed representations are unsupported.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -76,6 +78,7 @@ Next priorities:
 - Keep source host validation reviewed when CDC URL provenance changes
 - Keep response content-type validation ahead of live response-body reads
 - Keep strict UTF-8 decoding after bounded live response-body reads
+- Keep identity-only content encoding validation before response-body reads
 - Keep fetch credential rejection covered when source URL handling changes
 - Keep fetch query and fragment rejection covered when source URL handling
   changes

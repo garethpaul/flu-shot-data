@@ -88,6 +88,9 @@ against the same HTTPS CDC host policy. Live response bodies are limited to
 Responses must declare `text/html` with no charset or a UTF-8-compatible
 charset before the first body read. Bounded response bytes are decoded as
 strict UTF-8; malformed byte sequences fail without exposing response content.
+Only absent or one explicit identity Content-Encoding field is accepted;
+compressed, duplicated, or otherwise transformed bodies are rejected before
+the first body read.
 
 The `make lint`, `make test`, and `make build` aliases run the same offline
 baseline while this project has no narrower installed gates.
@@ -151,6 +154,8 @@ markup. Validate live scraping separately before publishing current data.
   type, charset, and guard-before-read coverage.
 - See `docs/plans/2026-06-13-strict-utf8-response-decoding.md` for strict body
   decoding and malformed-response coverage.
+- See `docs/plans/2026-06-13-response-content-encoding-boundary.md` for the
+  identity-only transport representation and guard-before-read coverage.
 
 ## Contributing
 

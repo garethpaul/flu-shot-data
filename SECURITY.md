@@ -42,6 +42,8 @@ Helpful reports include:
   UTF-8-compatible, and validation must occur before response-body reads.
 - Bounded live response bodies must decode as strict UTF-8. Malformed bytes
   fail with a generic error that does not include response content.
+- Live responses must use absent or one explicit identity `Content-Encoding`;
+  compressed, duplicated, or transformed bodies fail before any body read.
 - Parsed influenza week numbers and ending dates should be validated before
   public-health records are emitted.
 - Duplicate region labels should fail parsing before public-health outputs are
