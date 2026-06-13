@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-13
+
+- Required live CDC responses to declare `text/html` with no charset or a
+  UTF-8-compatible charset before reading response bytes.
+- Added accepted metadata, rejection, and guard-before-read regression tests.
+
 ## 2026-06-12
 
 - Rejected exact and case-varied duplicate region rows before generating weekly

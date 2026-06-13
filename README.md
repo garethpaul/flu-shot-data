@@ -85,6 +85,8 @@ out-of-range timeout values fall back to 30 seconds.
 Automatic redirects are rejected, and final response URLs are revalidated
 against the same HTTPS CDC host policy. Live response bodies are limited to
 2 MiB while the validated socket timeout bounds stalled operations.
+Responses must declare `text/html` with no charset or a UTF-8-compatible
+charset before the first body read.
 
 The `make lint`, `make test`, and `make build` aliases run the same offline
 baseline while this project has no narrower installed gates.
@@ -144,6 +146,8 @@ markup. Validate live scraping separately before publishing current data.
   baseline.
 - See `docs/plans/2026-06-12-live-fetch-boundaries.md` for redirect and response
   size guards.
+- See `docs/plans/2026-06-13-response-content-type-boundary.md` for HTML media
+  type, charset, and guard-before-read coverage.
 
 ## Contributing
 

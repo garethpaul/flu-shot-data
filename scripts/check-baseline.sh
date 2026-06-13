@@ -16,6 +16,7 @@ FETCH_TIMEOUT_PLAN="$ROOT_DIR/docs/plans/2026-06-09-flu-shot-fetch-timeout-valid
 WEEK_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-10-flu-week-metadata-validation.md"
 LIVE_FETCH_BOUNDARY_PLAN="$ROOT_DIR/docs/plans/2026-06-12-live-fetch-boundaries.md"
 DUPLICATE_REGION_PLAN="$ROOT_DIR/docs/plans/2026-06-12-duplicate-region-guard.md"
+CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-type-boundary.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -54,6 +55,7 @@ for path in \
   "docs/plans/2026-06-10-flu-week-metadata-validation.md" \
   "docs/plans/2026-06-12-live-fetch-boundaries.md" \
   "docs/plans/2026-06-12-duplicate-region-guard.md" \
+  "docs/plans/2026-06-13-response-content-type-boundary.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -229,6 +231,34 @@ if ! grep -Fq "class CDCNoRedirectHandler" "$ROOT_DIR/flushot.py" ||
   exit 1
 fi
 
+if ! grep -Fq "def validate_html_content_type" "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'headers.get("Content-Type")' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'media_type != "text/html"' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'charset.lower() not in {"utf-8", "utf8"}' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq "test_validate_response_content_type_accepts_utf8_html" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_validate_response_content_type_rejects_missing_or_incompatible_values" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_fetch_html_rejects_content_type_before_reading_body" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "self.assertEqual(0, response.read_calls)" "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Live CDC fetches must validate HTML and UTF-8 response metadata before body reads." >&2
+  exit 1
+fi
+
+python3 - "$ROOT_DIR/flushot.py" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+fetch = source.split("def fetch_html(", 1)[-1].split("\ndef parse_week_metadata", 1)[0]
+contract = (
+    "validate_fetch_url(response.geturl())",
+    "validate_html_content_type(response.headers)",
+    "read_response_bytes(response, max_bytes)",
+)
+positions = [fetch.find(fragment) for fragment in contract]
+if -1 in positions or positions != sorted(positions) or len(set(positions)) != len(positions):
+    raise SystemExit("Final URL and response metadata validation must remain ahead of body reads.")
+PY
+
 if ! grep -Fq "lint: check" "$ROOT_DIR/Makefile" ||
   ! grep -Fq "test: check" "$ROOT_DIR/Makefile" ||
   ! grep -Fq "build: check" "$ROOT_DIR/Makefile"; then
@@ -317,6 +347,14 @@ fi
 if ! grep -Fq "GitHub Actions" "$ROOT_DIR/SECURITY.md" ||
   ! grep -Fq "GitHub Actions" "$ROOT_DIR/CHANGES.md"; then
   printf '%s\n' "Project docs must record the GitHub Actions CI baseline." >&2
+  exit 1
+fi
+
+if ! grep -Fq 'must declare `text/html`' "$ROOT_DIR/README.md" ||
+  ! grep -Fq 'metadata must declare `text/html`' "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq "require HTML media metadata" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq 'Required live CDC responses to declare `text/html`' "$ROOT_DIR/CHANGES.md"; then
+  printf '%s\n' "Project docs must record the response content-type boundary." >&2
   exit 1
 fi
 
@@ -427,4 +465,25 @@ if ! grep -Fq "status: completed" "$CI_PLAN" ||
   printf '%s\n' "CI baseline plan must be completed and record make check verification." >&2
   exit 1
 fi
+
+python3 - "$CONTENT_TYPE_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "validator removal mutation failed",
+    "media allowlist mutation failed",
+    "validation ordering mutation failed",
+    "hosted pull-request check",
+)
+
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Response content-type plan must record completed status and actual verification."
+    )
+PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

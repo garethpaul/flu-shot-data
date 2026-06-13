@@ -7,6 +7,7 @@ import csv
 import json
 import re
 from datetime import datetime
+from email.message import Message
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List
@@ -139,6 +140,25 @@ class CDCNoRedirectHandler(HTTPRedirectHandler):
         raise ValueError("CDC fetch redirects are not allowed.")
 
 
+def validate_html_content_type(headers) -> None:
+    content_type = headers.get("Content-Type")
+    if not isinstance(content_type, str) or not content_type.strip():
+        raise ValueError("CDC response must declare an HTML Content-Type.")
+
+    message = Message()
+    try:
+        message["Content-Type"] = content_type
+        media_type = message.get_content_type().lower()
+        charset = message.get_content_charset()
+    except (TypeError, ValueError) as error:
+        raise ValueError("CDC response has an invalid Content-Type.") from error
+
+    if media_type != "text/html":
+        raise ValueError("CDC response Content-Type must be text/html.")
+    if charset is not None and charset.lower() not in {"utf-8", "utf8"}:
+        raise ValueError("CDC response Content-Type must use UTF-8.")
+
+
 def read_response_bytes(response, max_bytes: int) -> bytes:
     if max_bytes < 1:
         raise ValueError("CDC response size limit must be positive.")
@@ -185,6 +205,7 @@ def fetch_html(
     opener = build_opener(CDCNoRedirectHandler())
     with opener.open(request, timeout=timeout_seconds) as response:
         validate_fetch_url(response.geturl())
+        validate_html_content_type(response.headers)
         return read_response_bytes(response, max_bytes).decode("utf-8", errors="replace")
 
 

@@ -39,6 +39,8 @@ Current baseline:
   invalid values falling back to 30 seconds.
 - Automatic redirects are rejected and final response URLs are revalidated
   against the CDC hostname policy, with a 2 MiB response ceiling.
+- Live responses require HTML media metadata and absent or UTF-8-compatible
+  charset declarations before any body read.
 - The parser validates expected CDC summary table headers and selects the first
   matching summary table before emitting rows.
 - Repeated header rows and rows without a region value are skipped within the
@@ -70,6 +72,7 @@ Next priorities:
 - Update source URLs if CDC structure changes
 - Keep URL validation covered if alternate CDC source URLs are introduced
 - Keep source host validation reviewed when CDC URL provenance changes
+- Keep response content-type validation ahead of live response-body reads
 - Keep fetch credential rejection covered when source URL handling changes
 - Keep fetch query and fragment rejection covered when source URL handling
   changes
