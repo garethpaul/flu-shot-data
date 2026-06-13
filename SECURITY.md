@@ -38,8 +38,9 @@ Helpful reports include:
   or excessive caller-provided values do not control live request behavior.
 - Automatic redirects are rejected, final response URLs remain inside the
   HTTPS CDC hostname boundary, and response bodies are bounded.
-- Live response metadata must declare `text/html`; explicit charsets must be
-  UTF-8-compatible, and validation must occur before response-body reads.
+- Live response metadata must declare exactly one `text/html` field; duplicate
+  fields are rejected, explicit charsets must be UTF-8-compatible, and
+  validation must occur before response-body reads.
 - Bounded live response bodies must decode as strict UTF-8. Malformed bytes
   fail with a generic error that does not include response content.
 - Live responses must use absent or one explicit identity `Content-Encoding`;

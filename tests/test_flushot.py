@@ -308,6 +308,26 @@ class FluShotParserTests(unittest.TestCase):
 
         self.assertEqual(0, response.read_calls)
 
+    def test_fetch_html_rejects_duplicate_content_type_before_reading_body(self):
+        for second_content_type in (
+            "text/html; charset=utf-8",
+            "application/json",
+        ):
+            headers = Message()
+            headers["Content-Type"] = "text/html; charset=utf-8"
+            headers["Content-Type"] = second_content_type
+            response = FakeResponse(body=b"private response", headers=headers)
+            opener = FakeOpener(response)
+
+            with self.subTest(second_content_type=second_content_type):
+                with patch("flushot.build_opener", return_value=opener):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        r"^CDC response must declare exactly one Content-Type\.$",
+                    ):
+                        flushot.fetch_html(max_bytes=40)
+                self.assertEqual(0, response.read_calls)
+
     def test_fetch_html_uses_validated_bounded_response(self):
         response = FakeResponse(
             body=b"<html>ok</html>",

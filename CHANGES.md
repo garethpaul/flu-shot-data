@@ -2,6 +2,7 @@
 
 ## 2026-06-13
 
+- Rejected duplicate CDC response Content-Type fields before body reads.
 - Enforced identity-only response content encoding before any live CDC body
   read and rejected compressed, duplicated, combined, blank, or unknown encodings.
 - Added accepted identity and no-read rejection coverage plus mutation-sensitive

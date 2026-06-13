@@ -1,7 +1,7 @@
 ---
 title: Duplicate Response Content Type Rejection
 type: security
-status: planned
+status: completed
 date: 2026-06-13
 ---
 
@@ -37,3 +37,26 @@ body so conflicting media metadata cannot be interpreted using only one value.
 - Supporting non-HTML media types or non-UTF-8 charsets.
 - Changing content encoding, decompression, body limits, or parsing.
 - Changing dependencies, CI versions, or output files.
+
+## Work Completed
+
+- Enumerated all `Content-Type` header fields and rejected more than one before
+  parsing the existing HTML media type and charset policy.
+- Added matching and conflicting duplicate regressions through `fetch_html`,
+  including zero-read assertions.
+- Extended the static baseline and repository guidance for the boundary.
+
+## Verification Completed
+
+- The focused duplicate-content-type test and complete 30-test suite passed.
+- The six hostile mutations were rejected: header enumeration removal, duplicate
+  allowlisting, body-read reordering, no-read assertion loss, stale plan status,
+  and missing evidence.
+- The all four Make gates passed result was first confirmed in the isolated
+  mutation fixture and then rerun against the final worktree.
+- Python compilation, shell syntax, `git diff --check`, and intended-path
+  artifact and secret scans are included in final-tree verification.
+- No live CDC request was made; current production metadata and markup
+  compatibility are not claimed.
+- The hosted pull-request check and code-scanning result will be recorded
+  against the exact pushed head in the external tracker.

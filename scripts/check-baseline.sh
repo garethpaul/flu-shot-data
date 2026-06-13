@@ -19,6 +19,7 @@ DUPLICATE_REGION_PLAN="$ROOT_DIR/docs/plans/2026-06-12-duplicate-region-guard.md
 CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-type-boundary.md"
 STRICT_UTF8_PLAN="$ROOT_DIR/docs/plans/2026-06-13-strict-utf8-response-decoding.md"
 CONTENT_ENCODING_PLAN="$ROOT_DIR/docs/plans/2026-06-13-response-content-encoding-boundary.md"
+DUPLICATE_CONTENT_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-13-duplicate-response-content-type.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -60,6 +61,7 @@ for path in \
   "docs/plans/2026-06-13-response-content-type-boundary.md" \
   "docs/plans/2026-06-13-strict-utf8-response-decoding.md" \
   "docs/plans/2026-06-13-response-content-encoding-boundary.md" \
+  "docs/plans/2026-06-13-duplicate-response-content-type.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -236,12 +238,14 @@ if ! grep -Fq "class CDCNoRedirectHandler" "$ROOT_DIR/flushot.py" ||
 fi
 
 if ! grep -Fq "def validate_html_content_type" "$ROOT_DIR/flushot.py" ||
-  ! grep -Fq 'headers.get("Content-Type")' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'get_all("Content-Type", [])' "$ROOT_DIR/flushot.py" ||
+  ! grep -Fq 'len(content_types) > 1' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq 'media_type != "text/html"' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq 'charset.lower() not in {"utf-8", "utf8"}' "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_validate_response_content_type_accepts_utf8_html" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "test_validate_response_content_type_rejects_missing_or_incompatible_values" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "test_fetch_html_rejects_content_type_before_reading_body" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_fetch_html_rejects_duplicate_content_type_before_reading_body" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "self.assertEqual(0, response.read_calls)" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Live CDC fetches must validate HTML and UTF-8 response metadata before body reads." >&2
   exit 1
@@ -261,6 +265,39 @@ contract = (
 positions = [fetch.find(fragment) for fragment in contract]
 if -1 in positions or positions != sorted(positions) or len(set(positions)) != len(positions):
     raise SystemExit("Final URL and response metadata validation must remain ahead of body reads.")
+PY
+
+python3 - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+tests = Path(sys.argv[2]).read_text()
+validator = source.split("def validate_html_content_type", 1)[-1].split(
+    "\ndef validate_content_encoding", 1
+)[0]
+required_validator = (
+    'get_all = getattr(headers, "get_all", None)',
+    'content_types = get_all("Content-Type", [])',
+    "content_types = [] if content_type is None else [content_type]",
+    "if len(content_types) > 1:",
+    'raise ValueError("CDC response must declare exactly one Content-Type.")',
+)
+if any(item not in validator for item in required_validator):
+    raise SystemExit("Live responses must reject duplicate Content-Type fields.")
+
+test_name = "def test_fetch_html_rejects_duplicate_content_type_before_reading_body"
+if tests.count(test_name) != 1:
+    raise SystemExit("Focused tests must keep one duplicate Content-Type regression.")
+test = tests.split(test_name, 1)[-1].split("\n    def ", 1)[0]
+required_test = (
+    '"text/html; charset=utf-8",',
+    '"application/json",',
+    'headers["Content-Type"] = second_content_type',
+    "self.assertEqual(0, response.read_calls)",
+)
+if any(item not in test for item in required_test):
+    raise SystemExit("Duplicate Content-Type tests must cover matching and conflicting fields before reads.")
 PY
 
 python3 - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" <<'PY'
@@ -460,9 +497,9 @@ if ! grep -Fq "GitHub Actions" "$ROOT_DIR/SECURITY.md" ||
   exit 1
 fi
 
-if ! grep -Fq 'must declare `text/html`' "$ROOT_DIR/README.md" ||
-  ! grep -Fq 'metadata must declare `text/html`' "$ROOT_DIR/SECURITY.md" ||
-  ! grep -Fq "require HTML media metadata" "$ROOT_DIR/VISION.md" ||
+if ! grep -Fq 'exactly one `text/html` field' "$ROOT_DIR/README.md" ||
+  ! grep -Fq 'exactly one `text/html` field' "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq "exactly one HTML media metadata field" "$ROOT_DIR/VISION.md" ||
   ! grep -Fq 'Required live CDC responses to declare `text/html`' "$ROOT_DIR/CHANGES.md"; then
   printf '%s\n' "Project docs must record the response content-type boundary." >&2
   exit 1
@@ -644,4 +681,33 @@ verification = plan.split("## Verification Completed\n", 1)[-1]
 if re.search(r"\b(?:pending|todo|tbd|not run)\b", verification, re.IGNORECASE):
     raise SystemExit("Response content-encoding verification must not remain pending.")
 PY
+
+python3 - "$DUPLICATE_CONTENT_TYPE_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "six hostile mutations were rejected",
+    "all four Make gates passed",
+    "No live CDC request was made",
+    "hosted pull-request check",
+)
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Duplicate Content-Type plan must record completed status and actual verification."
+    )
+PY
+
+if ! grep -Fq 'exactly one `text/html` field' "$ROOT_DIR/README.md" ||
+  ! grep -Fq 'exactly one `text/html` field' "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq "exactly one HTML media metadata field" "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq "Rejected duplicate CDC response Content-Type fields" "$ROOT_DIR/CHANGES.md" ||
+  ! grep -Fq 'Require exactly one HTML `Content-Type` field' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Project docs must preserve duplicate Content-Type rejection." >&2
+  exit 1
+fi
 printf '%s\n' "flu-shot-data Python baseline checks passed."

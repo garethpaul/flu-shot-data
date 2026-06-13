@@ -141,7 +141,17 @@ class CDCNoRedirectHandler(HTTPRedirectHandler):
 
 
 def validate_html_content_type(headers) -> None:
-    content_type = headers.get("Content-Type")
+    get_all = getattr(headers, "get_all", None)
+    if callable(get_all):
+        content_types = get_all("Content-Type", [])
+    else:
+        content_type = headers.get("Content-Type")
+        content_types = [] if content_type is None else [content_type]
+
+    if len(content_types) > 1:
+        raise ValueError("CDC response must declare exactly one Content-Type.")
+
+    content_type = content_types[0] if content_types else None
     if not isinstance(content_type, str) or not content_type.strip():
         raise ValueError("CDC response must declare an HTML Content-Type.")
 

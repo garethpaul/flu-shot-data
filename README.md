@@ -85,8 +85,9 @@ out-of-range timeout values fall back to 30 seconds.
 Automatic redirects are rejected, and final response URLs are revalidated
 against the same HTTPS CDC host policy. Live response bodies are limited to
 2 MiB while the validated socket timeout bounds stalled operations.
-Responses must declare `text/html` with no charset or a UTF-8-compatible
-charset before the first body read. Bounded response bytes are decoded as
+Responses must declare exactly one `text/html` field with no charset or a
+UTF-8-compatible charset before the first body read. Duplicate media metadata
+is rejected. Bounded response bytes are decoded as
 strict UTF-8; malformed byte sequences fail without exposing response content.
 Only absent or one explicit identity Content-Encoding field is accepted;
 compressed, duplicated, or otherwise transformed bodies are rejected before

@@ -39,8 +39,8 @@ Current baseline:
   invalid values falling back to 30 seconds.
 - Automatic redirects are rejected and final response URLs are revalidated
   against the CDC hostname policy, with a 2 MiB response ceiling.
-- Live responses require HTML media metadata and absent or UTF-8-compatible
-  charset declarations before any body read.
+- Live responses require exactly one HTML media metadata field and an absent or
+  UTF-8-compatible charset declaration before any body read.
 - Bounded response bytes are decoded strictly as UTF-8, with malformed bodies
   rejected before parsing.
 - Live responses enforce identity-only content encoding before bounded body
