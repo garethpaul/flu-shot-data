@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-14
+
+- Required exact HTTP 200 before CDC final-URL, response metadata, or body
+  processing.
+
 ## 2026-06-13
 
 - Made offline verification independent of the caller's working directory by

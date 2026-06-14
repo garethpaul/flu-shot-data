@@ -15,10 +15,11 @@ FIXTURE = Path(__file__).parent / "fixtures" / "cdc_weekly_summary.html"
 
 
 class FakeResponse:
-    def __init__(self, body=b"", url=flushot.CDC_FLU_URL, headers=None):
+    def __init__(self, body=b"", url=flushot.CDC_FLU_URL, headers=None, status=200):
         self.body = BytesIO(body)
         self.url = url
         self.headers = headers or {}
+        self.status = status
         self.read_calls = 0
 
     def read(self, size=-1):
@@ -27,6 +28,9 @@ class FakeResponse:
 
     def geturl(self):
         return self.url
+
+    def getcode(self):
+        return self.status
 
     def __enter__(self):
         return self
@@ -272,6 +276,29 @@ class FluShotParserTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "maximum allowed size"):
             flushot.read_response_bytes(response, max_bytes=10)
+
+    def test_fetch_html_requires_exact_success_status_before_metadata_or_body(self):
+        for status in (199, 201, 204, 206, 301, 400, 404, 429, 500):
+            response = FakeResponse(
+                body=b"private response",
+                status=status,
+                headers={"Content-Type": "text/html; charset=utf-8"},
+            )
+            opener = FakeOpener(response)
+
+            with self.subTest(status=status):
+                with patch("flushot.build_opener", return_value=opener):
+                    with patch(
+                        "flushot.validate_fetch_url",
+                        wraps=flushot.validate_fetch_url,
+                    ) as validate_url:
+                        with self.assertRaisesRegex(
+                            ValueError,
+                            r"^CDC response status must be 200\.$",
+                        ):
+                            flushot.fetch_html(max_bytes=40)
+                self.assertEqual(0, response.read_calls)
+                validate_url.assert_called_once_with(flushot.CDC_FLU_URL)
 
     def test_validate_response_content_type_accepts_utf8_html(self):
         for content_type in (

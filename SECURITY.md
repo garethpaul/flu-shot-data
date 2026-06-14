@@ -38,6 +38,8 @@ Helpful reports include:
   or excessive caller-provided values do not control live request behavior.
 - Automatic redirects are rejected, final response URLs remain inside the
   HTTPS CDC hostname boundary, and response bodies are bounded.
+- Live CDC responses must be exactly HTTP 200 before URL, metadata, or body
+  processing continues.
 - Live response metadata must declare exactly one `text/html` field; duplicate
   fields are rejected, explicit charsets must be UTF-8-compatible, and
   validation must occur before response-body reads.
