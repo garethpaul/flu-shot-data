@@ -140,6 +140,11 @@ class CDCNoRedirectHandler(HTTPRedirectHandler):
         raise ValueError("CDC fetch redirects are not allowed.")
 
 
+def validate_response_status(response) -> None:
+    if response.getcode() != 200:
+        raise ValueError("CDC response status must be 200.")
+
+
 def validate_html_content_type(headers) -> None:
     get_all = getattr(headers, "get_all", None)
     if callable(get_all):
@@ -243,6 +248,7 @@ def fetch_html(
     )
     opener = build_opener(CDCNoRedirectHandler())
     with opener.open(request, timeout=timeout_seconds) as response:
+        validate_response_status(response)
         validate_fetch_url(response.geturl())
         validate_html_content_type(response.headers)
         validate_content_encoding(response.headers)

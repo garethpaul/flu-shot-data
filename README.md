@@ -89,6 +89,8 @@ out-of-range timeout values fall back to 30 seconds.
 Automatic redirects are rejected, and final response URLs are revalidated
 against the same HTTPS CDC host policy. Live response bodies are limited to
 2 MiB while the validated socket timeout bounds stalled operations.
+Live CDC processing requires an exact HTTP 200 before final URL, metadata, or
+body handling.
 Responses must declare exactly one `text/html` field with no charset or a
 UTF-8-compatible charset before the first body read. Duplicate media metadata
 is rejected. Bounded response bytes are decoded as
