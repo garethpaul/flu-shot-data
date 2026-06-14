@@ -2,7 +2,7 @@
 title: Response Content-Length Boundary
 type: security
 date: 2026-06-14
-status: planned
+status: completed
 execution: code
 ---
 
@@ -119,4 +119,11 @@ artifact and secret audits pass on the intended diff.
 
 ## Verification
 
-Pending implementation.
+- Focused response-length tests cover missing and exact values, duplicate and
+  malformed declarations, pre-read rejection, and dishonest smaller lengths.
+- Five isolated hostile mutations were rejected for duplicate detection,
+  decimal syntax, validation ordering, executable coverage, and plan evidence.
+- All 35 offline tests and the static baseline passed through `make check` from
+  the repository root and an external working directory.
+- `sh -n`, all four Make gates, exact diff review, and final artifact and secret
+  audits passed before delivery.

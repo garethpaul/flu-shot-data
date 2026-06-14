@@ -50,6 +50,8 @@ CDC weekly influenza summary table into CSV and JSON records.
   policy.
 - Reject automatic redirects and keep live response bodies bounded.
 - Require exact HTTP 200 before final URL, response metadata, or body handling.
+- Require a single ASCII-decimal `Content-Length` when present and preserve the
+  streamed byte ceiling as the final size authority.
 - Require exactly one HTML `Content-Type` field before reading live responses.
 - Decode bounded live response bodies as strict UTF-8 and keep malformed-body
   errors free of response content.

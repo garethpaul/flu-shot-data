@@ -40,6 +40,9 @@ Helpful reports include:
   HTTPS CDC hostname boundary, and response bodies are bounded.
 - Live CDC responses must be exactly HTTP 200 before URL, metadata, or body
   processing continues.
+- An optional `Content-Length` must be a single ASCII-decimal field within the
+  configured limit. Ambiguous or malformed declarations fail before body reads,
+  and streamed byte counting remains authoritative.
 - Live response metadata must declare exactly one `text/html` field; duplicate
   fields are rejected, explicit charsets must be UTF-8-compatible, and
   validation must occur before response-body reads.

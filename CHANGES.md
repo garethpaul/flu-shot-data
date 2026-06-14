@@ -2,6 +2,10 @@
 
 ## 2026-06-14
 
+- Rejected duplicate, combined, signed, padded, empty, and non-decimal CDC
+  `Content-Length` metadata before body reads while preserving streamed limits.
+- Replaced recursive bytecode cleanup with in-memory syntax compilation and
+  bytecode-disabled tests.
 - Required exact HTTP 200 before CDC final-URL, response metadata, or body
   processing.
 

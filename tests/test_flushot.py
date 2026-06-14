@@ -271,8 +271,56 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "maximum allowed size"):
             flushot.read_response_bytes(response, max_bytes=10)
 
+        self.assertEqual(0, response.read_calls)
+
+    def test_read_response_accepts_missing_or_exact_content_length(self):
+        for headers in ({}, {"Content-Length": "10"}):
+            with self.subTest(headers=headers):
+                response = FakeResponse(body=b"1234567890", headers=headers)
+
+                self.assertEqual(
+                    b"1234567890",
+                    flushot.read_response_bytes(response, max_bytes=10),
+                )
+
+    def test_read_response_rejects_duplicate_content_length_before_reading(self):
+        for values in (("10", "10"), ("9", "10")):
+            with self.subTest(values=values):
+                headers = Message()
+                for value in values:
+                    headers["Content-Length"] = value
+                response = FakeResponse(body=b"1234567890", headers=headers)
+
+                with self.assertRaisesRegex(ValueError, "exactly one Content-Length"):
+                    flushot.read_response_bytes(response, max_bytes=10)
+
+                self.assertEqual(0, response.read_calls)
+
+    def test_read_response_rejects_noncanonical_content_length_before_reading(self):
+        rejected = ("", " 10", "10 ", "+10", "-1", "10, 10", "1.0", "ten")
+        for content_length in rejected:
+            with self.subTest(content_length=content_length):
+                response = FakeResponse(
+                    body=b"1234567890",
+                    headers={"Content-Length": content_length},
+                )
+
+                with self.assertRaisesRegex(ValueError, "ASCII decimal"):
+                    flushot.read_response_bytes(response, max_bytes=10)
+
+                self.assertEqual(0, response.read_calls)
+
     def test_read_response_rejects_streamed_oversize(self):
         response = FakeResponse(body=b"12345678901")
+
+        with self.assertRaisesRegex(ValueError, "maximum allowed size"):
+            flushot.read_response_bytes(response, max_bytes=10)
+
+    def test_read_response_rejects_streamed_oversize_after_smaller_declaration(self):
+        response = FakeResponse(
+            body=b"12345678901",
+            headers={"Content-Length": "1"},
+        )
 
         with self.assertRaisesRegex(ValueError, "maximum allowed size"):
             flushot.read_response_bytes(response, max_bytes=10)
