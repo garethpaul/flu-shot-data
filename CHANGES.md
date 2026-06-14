@@ -2,6 +2,8 @@
 
 ## 2026-06-14
 
+- Rejected truncated or overlong CDC response bodies when a validated
+  `Content-Length` does not match the final bounded byte count.
 - Rejected duplicate, combined, signed, padded, empty, and non-decimal CDC
   `Content-Length` metadata before body reads while preserving streamed limits.
 - Replaced recursive bytecode cleanup with in-memory syntax compilation and

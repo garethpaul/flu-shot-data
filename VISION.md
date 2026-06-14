@@ -41,7 +41,8 @@ Current baseline:
   against the CDC hostname policy, with a 2 MiB response ceiling.
 - Live CDC responses require exact HTTP 200 before final URL or metadata checks.
 - Optional response lengths are single-valued ASCII decimals and remain subject
-  to the independent streamed 2 MiB ceiling.
+  to the independent streamed 2 MiB ceiling; a present declaration must equal
+  the final bounded byte count.
 - Live responses require exactly one HTML media metadata field and an absent or
   UTF-8-compatible charset declaration before any body read.
 - Bounded response bytes are decoded strictly as UTF-8, with malformed bodies

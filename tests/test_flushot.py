@@ -283,6 +283,24 @@ class FluShotParserTests(unittest.TestCase):
                     flushot.read_response_bytes(response, max_bytes=10),
                 )
 
+    def test_read_response_rejects_body_shorter_than_content_length(self):
+        response = FakeResponse(
+            body=b"123456789",
+            headers={"Content-Length": "10"},
+        )
+
+        with self.assertRaisesRegex(ValueError, "does not match Content-Length"):
+            flushot.read_response_bytes(response, max_bytes=10)
+
+    def test_read_response_rejects_body_longer_than_content_length(self):
+        response = FakeResponse(
+            body=b"1234567890",
+            headers={"Content-Length": "9"},
+        )
+
+        with self.assertRaisesRegex(ValueError, "does not match Content-Length"):
+            flushot.read_response_bytes(response, max_bytes=10)
+
     def test_read_response_rejects_duplicate_content_length_before_reading(self):
         for values in (("10", "10"), ("9", "10")):
             with self.subTest(values=values):

@@ -196,7 +196,7 @@ def validate_content_encoding(headers) -> None:
         raise ValueError("CDC response Content-Encoding must be identity.")
 
 
-def validate_content_length(headers, max_bytes: int) -> None:
+def validate_content_length(headers, max_bytes: int) -> int | None:
     if max_bytes < 1:
         raise ValueError("CDC response size limit must be positive.")
 
@@ -210,18 +210,20 @@ def validate_content_length(headers, max_bytes: int) -> None:
     if len(content_lengths) > 1:
         raise ValueError("CDC response must declare exactly one Content-Length.")
     if not content_lengths:
-        return
+        return None
 
     content_length = content_lengths[0]
     if not isinstance(content_length, str) or re.fullmatch(r"[0-9]+", content_length) is None:
         raise ValueError("CDC response Content-Length must be an ASCII decimal value.")
 
-    if int(content_length) > max_bytes:
+    declared_length = int(content_length)
+    if declared_length > max_bytes:
         raise ValueError("CDC response exceeds the maximum allowed size.")
+    return declared_length
 
 
 def read_response_bytes(response, max_bytes: int) -> bytes:
-    validate_content_length(response.headers, max_bytes)
+    declared_length = validate_content_length(response.headers, max_bytes)
 
     chunks = []
     total_bytes = 0
@@ -233,6 +235,9 @@ def read_response_bytes(response, max_bytes: int) -> bytes:
         if total_bytes > max_bytes:
             raise ValueError("CDC response exceeds the maximum allowed size.")
         chunks.append(chunk)
+
+    if declared_length is not None and total_bytes != declared_length:
+        raise ValueError("CDC response body does not match Content-Length.")
 
     return b"".join(chunks)
 

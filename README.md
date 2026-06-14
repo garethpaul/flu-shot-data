@@ -93,7 +93,9 @@ Live CDC processing requires an exact HTTP 200 before final URL, metadata, or
 body handling.
 An optional `Content-Length` must be one ASCII-decimal field within the 2 MiB
 limit; duplicate, combined, signed, padded, or malformed declarations fail
-before the first body read. Streaming still enforces the limit independently.
+before the first body read. When present, the declaration must equal the final
+bounded byte count; truncated or overlong bodies fail instead of reaching the
+HTML parser. Streaming still enforces the limit independently.
 Responses must declare exactly one `text/html` field with no charset or a
 UTF-8-compatible charset before the first body read. Duplicate media metadata
 is rejected. Bounded response bytes are decoded as
@@ -166,6 +168,8 @@ markup. Validate live scraping separately before publishing current data.
   decoding and malformed-response coverage.
 - See `docs/plans/2026-06-13-response-content-encoding-boundary.md` for the
   identity-only transport representation and guard-before-read coverage.
+- See `docs/plans/2026-06-14-response-content-length-integrity.md` for exact
+  declared-versus-received response length verification.
 
 ## Contributing
 

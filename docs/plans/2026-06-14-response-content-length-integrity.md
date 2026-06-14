@@ -2,7 +2,7 @@
 title: Response Content-Length Integrity
 type: security
 date: 2026-06-14
-status: in_progress
+status: completed
 execution: code
 ---
 
@@ -102,8 +102,19 @@ header behavior, test coverage, and completed plan evidence.
 - `git diff --check`, explicit generated-artifact inspection, and changed-line
   credential-pattern inspection.
 
+## Completed Verification
+
+- All 37 offline tests passed, including focused unit tests for missing, exact,
+  truncated, overlong, malformed, duplicate, and globally oversized response
+  lengths.
+- The original response-length checker and the new integrity checker passed.
+- Five isolated hostile mutations were rejected for the short-body direction,
+  long-body direction, optional-header behavior, executable regression names,
+  and completed plan evidence.
+- Root and external-directory `make check` passed after the completed plan and
+  repository guidance were in their final state.
+
 ## Sources
 
 - RFC 9110, Section 8.6, `Content-Length`:
   https://www.rfc-editor.org/rfc/rfc9110#section-8.6
-

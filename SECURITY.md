@@ -42,7 +42,8 @@ Helpful reports include:
   processing continues.
 - An optional `Content-Length` must be a single ASCII-decimal field within the
   configured limit. Ambiguous or malformed declarations fail before body reads,
-  and streamed byte counting remains authoritative.
+  a present declaration must equal the final bounded byte count, and streamed
+  byte counting remains authoritative.
 - Live response metadata must declare exactly one `text/html` field; duplicate
   fields are rejected, explicit charsets must be UTF-8-compatible, and
   validation must occur before response-body reads.
