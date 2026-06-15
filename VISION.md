@@ -63,6 +63,8 @@ Current baseline:
   and calendar boundaries before output.
 - `flu.csv` and `flu.json` are treated as generated outputs unless intentionally
   reviewed as data artifacts.
+- Reject direct, symlink-resolved, and same-file output destination collisions
+  before materializing records or opening generated files.
 - `make lint`, `make test`, and `make build` run the same offline baseline
   while no narrower gates are installed.
 - GitHub Actions runs the offline `make check` baseline on Python 3.10, 3.12,

@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import tempfile
 import unittest
 from email.message import Message
@@ -158,6 +159,58 @@ class FluShotParserTests(unittest.TestCase):
 
         self.assertEqual(flushot.HEADERS, list(rows[0].keys()))
         self.assertEqual(rows, json_rows)
+
+    def test_write_outputs_rejects_identical_destinations_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "flu-output"
+            output_path.write_bytes(b"sentinel")
+
+            with self.assertRaisesRegex(ValueError, "distinct filesystem targets"):
+                flushot.write_outputs(
+                    records,
+                    csv_path=output_path,
+                    json_path=output_path,
+                )
+
+            self.assertEqual(b"sentinel", output_path.read_bytes())
+
+    def test_write_outputs_rejects_symlink_aliases_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "flu-output"
+            alias_path = Path(tmpdir) / "flu-alias"
+            output_path.write_bytes(b"sentinel")
+            alias_path.symlink_to(output_path)
+
+            with self.assertRaisesRegex(ValueError, "distinct filesystem targets"):
+                flushot.write_outputs(
+                    records,
+                    csv_path=output_path,
+                    json_path=alias_path,
+                )
+
+            self.assertEqual(b"sentinel", output_path.read_bytes())
+
+    def test_write_outputs_rejects_hard_link_aliases_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "flu-output"
+            alias_path = Path(tmpdir) / "flu-alias"
+            output_path.write_bytes(b"sentinel")
+            os.link(output_path, alias_path)
+
+            with self.assertRaisesRegex(ValueError, "distinct filesystem targets"):
+                flushot.write_outputs(
+                    records,
+                    csv_path=output_path,
+                    json_path=alias_path,
+                )
+
+            self.assertEqual(b"sentinel", output_path.read_bytes())
 
     def test_parse_records_fails_when_metadata_is_missing(self):
         with self.assertRaisesRegex(ValueError, "week number and ending date"):

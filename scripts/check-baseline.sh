@@ -31,6 +31,7 @@ DUPLICATE_CHARSET_PLAN="$ROOT_DIR/docs/plans/2026-06-15-duplicate-content-type-c
 DUPLICATE_CHARSET_CHECK="$ROOT_DIR/scripts/check-duplicate-charset.py"
 FETCH_PORT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-cdc-fetch-port-boundary.md"
 FETCH_PORT_CHECK="$ROOT_DIR/scripts/check-fetch-port-boundary.py"
+OUTPUT_PATH_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-path-collision.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -76,6 +77,7 @@ for path in \
   "scripts/check-duplicate-charset.py" \
   "docs/plans/2026-06-15-cdc-fetch-port-boundary.md" \
   "scripts/check-fetch-port-boundary.py" \
+  "docs/plans/2026-06-15-output-path-collision.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -90,6 +92,45 @@ for path in \
 done
 
 python3 "$FETCH_PORT_CHECK" "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py"
+
+python3 - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+tests = Path(sys.argv[2]).read_text()
+
+source_contracts = (
+    "def validate_output_paths(",
+    "csv_output.resolve() == json_output.resolve()",
+    "csv_output.samefile(json_output)",
+    "except FileNotFoundError:",
+    'raise ValueError("CSV and JSON outputs must use distinct filesystem targets.")',
+    "csv_output, json_output = validate_output_paths(csv_path, json_path)",
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("Output writer must reject resolved and same-file destination collisions.")
+
+test_contracts = (
+    "test_write_outputs_rejects_identical_destinations_before_truncation",
+    "test_write_outputs_rejects_symlink_aliases_before_truncation",
+    "test_write_outputs_rejects_hard_link_aliases_before_truncation",
+    'self.assertEqual(b"sentinel", output_path.read_bytes())',
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("Output path collision regressions must preserve pre-existing bytes.")
+
+writer = source[source.index("def write_outputs("):]
+order = (
+    "validate_output_paths(csv_path, json_path)",
+    "records = list(records)",
+    'csv_output.open("w"',
+    'json_output.open("w"',
+)
+positions = [writer.index(contract) for contract in order]
+if positions != sorted(positions):
+    raise SystemExit("Output destinations must be validated before records or files are materialized.")
+PY
 
 "$PYTHON" "$RESPONSE_STATUS_CHECK" \
   "$ROOT_DIR/flushot.py" \
@@ -804,4 +845,33 @@ if ! grep -Fq 'exactly one `text/html` field' "$ROOT_DIR/README.md" ||
   printf '%s\n' "Project docs must preserve duplicate Content-Type rejection." >&2
   exit 1
 fi
+
+if ! grep -Fq 'distinct filesystem targets' "$ROOT_DIR/README.md" ||
+  ! grep -Fq 'distinct filesystem targets' "$ROOT_DIR/SECURITY.md" ||
+  ! grep -Fq 'same-file output destination collisions' "$ROOT_DIR/VISION.md" ||
+  ! grep -Fq 'Rejected colliding CSV and JSON output destinations' "$ROOT_DIR/CHANGES.md" ||
+  ! grep -Fq 'output destinations filesystem-distinct' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Project docs must preserve output destination collision rejection." >&2
+  exit 1
+fi
+
+python3 - "$OUTPUT_PATH_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "all 44 offline tests",
+    "repository and external-directory `make check`",
+    "Seven isolated hostile mutations were rejected",
+    "No live CDC request was made",
+)
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Output path collision plan must record completed status and actual verification."
+    )
+PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

@@ -55,6 +55,8 @@ python3 flushot.py
 
 Generated data files are ignored by default. Commit generated outputs only when
 the data provenance and source date are reviewed.
+CSV and JSON destinations must identify distinct filesystem targets; direct,
+symlink-resolved, and existing same-file aliases are rejected before writes.
 
 ## Testing and Verification
 

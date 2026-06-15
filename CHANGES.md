@@ -2,6 +2,7 @@
 
 ## 2026-06-15
 
+- Rejected colliding CSV and JSON output destinations before file writes.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Reject ambiguous duplicate charset parameters in CDC HTML response metadata
   before reading the response body.

@@ -381,19 +381,40 @@ def parse_records(html: str) -> List[Dict[str, str]]:
     return records
 
 
+def validate_output_paths(
+    csv_path: str | Path,
+    json_path: str | Path,
+) -> tuple[Path, Path]:
+    csv_output = Path(csv_path)
+    json_output = Path(json_path)
+
+    paths_collide = csv_output.resolve() == json_output.resolve()
+    if not paths_collide:
+        try:
+            paths_collide = csv_output.samefile(json_output)
+        except FileNotFoundError:
+            paths_collide = False
+
+    if paths_collide:
+        raise ValueError("CSV and JSON outputs must use distinct filesystem targets.")
+
+    return csv_output, json_output
+
+
 def write_outputs(
     records: Iterable[Dict[str, str]],
     csv_path: str | Path = "flu.csv",
     json_path: str | Path = "flu.json",
 ) -> None:
+    csv_output, json_output = validate_output_paths(csv_path, json_path)
     records = list(records)
 
-    with Path(csv_path).open("w", newline="", encoding="utf-8") as csv_file:
+    with csv_output.open("w", newline="", encoding="utf-8") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=HEADERS)
         writer.writeheader()
         writer.writerows(records)
 
-    with Path(json_path).open("w", encoding="utf-8") as json_file:
+    with json_output.open("w", encoding="utf-8") as json_file:
         json.dump(records, json_file, indent=4)
         json_file.write("\n")
 

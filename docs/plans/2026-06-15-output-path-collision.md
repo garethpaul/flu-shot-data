@@ -1,7 +1,7 @@
 ---
 title: Output Path Collision Guard
 type: reliability
-status: in_progress
+status: completed
 date: 2026-06-15
 execution: code
 ---
@@ -99,7 +99,29 @@ Files:
   collisions at call time but does not introduce directory locking or a
   multi-file transactional publication protocol.
 
-## Work Pending
+## Work Completed
 
-- Implement destination identity validation and regression coverage.
-- Update maintained contracts and record actual verification evidence.
+- Added pre-write destination identity validation using resolved path equality
+  and operating-system same-file checks for existing aliases.
+- Kept validation ahead of record materialization and both output file opens.
+- Added direct-path, symlink-alias, and hard-link-alias regressions proving
+  pre-existing bytes remain unchanged after rejection.
+- Added ordering-sensitive source, regression, guidance, and completed-plan
+  contracts to the offline baseline.
+
+## Verification Completed
+
+- The test-first focused run failed all three collision regressions on the
+  previous writer; all 44 offline tests passed after implementation.
+- The repository and external-directory `make check` gates passed with
+  bytecode generation disabled.
+- A completed-plan disposable baseline copy passed before the real plan status
+  changed, avoiding circular evidence.
+- Seven isolated hostile mutations were rejected for validator invocation,
+  validation ordering, resolved aliases, same-file aliases, regression
+  coverage, guidance, and plan completion evidence.
+- In-memory Python compilation, POSIX shell syntax, exact diff, generated
+  artifact, conflict marker, and changed-line secret audits passed.
+- No live CDC request was made.
+
+## Status: Completed
