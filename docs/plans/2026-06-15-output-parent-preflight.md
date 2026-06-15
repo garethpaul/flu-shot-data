@@ -1,0 +1,51 @@
+---
+title: Output Parent Preflight
+type: reliability
+status: planned
+date: 2026-06-15
+execution: code
+---
+
+# Output Parent Preflight
+
+## Problem
+
+`write_outputs` opens and truncates the CSV before it discovers that the JSON
+parent directory is missing or is not a directory. A configuration error in the
+second output can therefore destroy a valid first output while reporting
+failure.
+
+## Approach
+
+- Validate that both resolved output parent paths exist and are directories
+  before either destination is opened.
+- Raise a clear `ValueError` for an invalid parent while preserving existing
+  destination bytes.
+- Add focused regressions and static contracts for missing and non-directory
+  parents, guidance, and completed verification evidence.
+
+## Files
+
+- `flushot.py`
+- `tests/test_flushot.py`
+- `scripts/check-baseline.sh`
+- `README.md`
+- `SECURITY.md`
+- `VISION.md`
+- `CHANGES.md`
+- `AGENTS.md`
+- `docs/plans/2026-06-15-output-parent-preflight.md`
+
+## Verification
+
+- Prove the current implementation truncates the CSV before the JSON open
+  fails, then prove the fixed implementation preserves the sentinel.
+- Run the full repository and external-directory gates.
+- Reject isolated source, regression, guidance, and plan-evidence mutations.
+- Audit the exact diff, generated artifacts, and secret patterns.
+
+## Non-Goals
+
+- Do not implement multi-file transactional publication or create directories.
+- Do not change parsing, CDC fetching, output schemas, or CLI behavior.
+- Do not merge or close stacked pull requests without owner authorization.
