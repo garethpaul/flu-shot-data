@@ -164,12 +164,21 @@ def validate_html_content_type(headers) -> None:
     try:
         message["Content-Type"] = content_type
         media_type = message.get_content_type().lower()
-        charset = message.get_content_charset()
+        charset_parameters = [
+            value
+            for name, value in message.get_params()[1:]
+            if name.lower() == "charset"
+        ]
     except (TypeError, ValueError) as error:
         raise ValueError("CDC response has an invalid Content-Type.") from error
 
     if media_type != "text/html":
         raise ValueError("CDC response Content-Type must be text/html.")
+    if len(charset_parameters) > 1:
+        raise ValueError(
+            "CDC response Content-Type must declare at most one charset parameter."
+        )
+    charset = message.get_content_charset()
     if charset is not None and charset.lower() not in {"utf-8", "utf8"}:
         raise ValueError("CDC response Content-Type must use UTF-8.")
 

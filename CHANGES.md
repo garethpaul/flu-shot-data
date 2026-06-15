@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-15
+
+- Reject ambiguous duplicate charset parameters in CDC HTML response metadata
+  before reading the response body.
+
 ## 2026-06-14
 
 - Rejected truncated or overlong CDC response bodies when a validated

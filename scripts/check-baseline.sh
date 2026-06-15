@@ -27,6 +27,8 @@ CONTENT_LENGTH_PLAN="$ROOT_DIR/docs/plans/2026-06-14-002-security-response-conte
 CONTENT_LENGTH_CHECK="$ROOT_DIR/scripts/check-content-length-boundary.py"
 CONTENT_LENGTH_INTEGRITY_PLAN="$ROOT_DIR/docs/plans/2026-06-14-response-content-length-integrity.md"
 CONTENT_LENGTH_INTEGRITY_CHECK="$ROOT_DIR/scripts/check-content-length-integrity.py"
+DUPLICATE_CHARSET_PLAN="$ROOT_DIR/docs/plans/2026-06-15-duplicate-content-type-charset.md"
+DUPLICATE_CHARSET_CHECK="$ROOT_DIR/scripts/check-duplicate-charset.py"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -68,6 +70,8 @@ for path in \
   "scripts/check-content-length-boundary.py" \
   "docs/plans/2026-06-14-response-content-length-integrity.md" \
   "scripts/check-content-length-integrity.py" \
+  "docs/plans/2026-06-15-duplicate-content-type-charset.md" \
+  "scripts/check-duplicate-charset.py" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -95,6 +99,11 @@ done
   "$ROOT_DIR/flushot.py" \
   "$ROOT_DIR/tests/test_flushot.py" \
   "$CONTENT_LENGTH_INTEGRITY_PLAN"
+
+"$PYTHON" "$DUPLICATE_CHARSET_CHECK" \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$DUPLICATE_CHARSET_PLAN"
 
 if ! grep -Fq 'ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))' "$ROOT_DIR/Makefile" ||
   ! grep -Fq '"$(ROOT)/scripts/check-baseline.sh"' "$ROOT_DIR/Makefile"; then

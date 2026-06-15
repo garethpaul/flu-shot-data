@@ -2,7 +2,7 @@
 title: Duplicate Content-Type Charset Boundary
 type: security
 date: 2026-06-15
-status: pending
+status: completed
 execution: code
 ---
 
@@ -42,4 +42,15 @@ decoding the response body.
 
 ## Verification
 
-Pending implementation and validation.
+- Python 3.10.19, 3.12.8, and 3.14.0 each passed the full `make check` gate
+  with all 39 offline tests.
+- Direct validation rejects identical, conflicting, case-varied, and encoded
+  duplicate charset parameters while preserving absent, plain, and RFC 2231
+  encoded single UTF-8 declarations.
+- Fetch-order coverage proves duplicate charset metadata fails before the first
+  response-body read.
+- Nine hostile mutations were rejected across parameter parsing,
+  case-insensitive matching, cardinality, normalized value selection,
+  identical/conflicting fixtures, no-read proof, and incomplete plan evidence.
+- External-directory `make check`, in-memory compilation, shell syntax, exact
+  diff, secret, and generated-artifact audits passed before delivery.

@@ -45,8 +45,9 @@ Helpful reports include:
   a present declaration must equal the final bounded byte count, and streamed
   byte counting remains authoritative.
 - Live response metadata must declare exactly one `text/html` field; duplicate
-  fields are rejected, explicit charsets must be UTF-8-compatible, and
-  validation must occur before response-body reads.
+  fields and duplicate charset parameters are rejected, a single explicit
+  charset must be UTF-8-compatible, and validation must occur before
+  response-body reads.
 - Bounded live response bodies must decode as strict UTF-8. Malformed bytes
   fail with a generic error that does not include response content.
 - Live responses must use absent or one explicit identity `Content-Encoding`;

@@ -372,6 +372,7 @@ class FluShotParserTests(unittest.TestCase):
             "text/html; charset=UTF-8",
             "text/html; charset=utf8",
             "TEXT/HTML; Charset=UTF-8",
+            "text/html; charset*=utf-8''utf-8",
         ):
             with self.subTest(content_type=content_type):
                 flushot.validate_html_content_type({"Content-Type": content_type})
@@ -387,6 +388,40 @@ class FluShotParserTests(unittest.TestCase):
             with self.subTest(headers=headers):
                 with self.assertRaisesRegex(ValueError, message):
                     flushot.validate_html_content_type(headers)
+
+    def test_validate_response_content_type_rejects_duplicate_charset_parameters(
+        self,
+    ):
+        for content_type in (
+            "text/html; charset=utf-8; charset=utf-8",
+            "text/html; charset=utf-8; charset=iso-8859-1",
+            "text/html; CHARSET=utf8; charset=UTF-8",
+            "text/html; charset*=utf-8''utf-8; charset=utf-8",
+        ):
+            with self.subTest(content_type=content_type):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    r"^CDC response Content-Type must declare at most one charset parameter\.$",
+                ):
+                    flushot.validate_html_content_type({"Content-Type": content_type})
+
+    def test_fetch_html_rejects_duplicate_charset_before_reading_body(self):
+        response = FakeResponse(
+            body=b"private response",
+            headers={
+                "Content-Type": "text/html; charset=utf-8; charset=iso-8859-1"
+            },
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with self.assertRaisesRegex(
+                ValueError,
+                r"^CDC response Content-Type must declare at most one charset parameter\.$",
+            ):
+                flushot.fetch_html(max_bytes=40)
+
+        self.assertEqual(0, response.read_calls)
 
     def test_fetch_html_rejects_content_type_before_reading_body(self):
         response = FakeResponse(
