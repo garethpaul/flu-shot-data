@@ -29,6 +29,8 @@ CONTENT_LENGTH_INTEGRITY_PLAN="$ROOT_DIR/docs/plans/2026-06-14-response-content-
 CONTENT_LENGTH_INTEGRITY_CHECK="$ROOT_DIR/scripts/check-content-length-integrity.py"
 DUPLICATE_CHARSET_PLAN="$ROOT_DIR/docs/plans/2026-06-15-duplicate-content-type-charset.md"
 DUPLICATE_CHARSET_CHECK="$ROOT_DIR/scripts/check-duplicate-charset.py"
+FETCH_PORT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-cdc-fetch-port-boundary.md"
+FETCH_PORT_CHECK="$ROOT_DIR/scripts/check-fetch-port-boundary.py"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -72,6 +74,8 @@ for path in \
   "scripts/check-content-length-integrity.py" \
   "docs/plans/2026-06-15-duplicate-content-type-charset.md" \
   "scripts/check-duplicate-charset.py" \
+  "docs/plans/2026-06-15-cdc-fetch-port-boundary.md" \
+  "scripts/check-fetch-port-boundary.py" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -84,6 +88,8 @@ for path in \
   "docs/plans/2026-06-08-flu-shot-data-python3-baseline.md"; do
   require_file "$path"
 done
+
+python3 "$FETCH_PORT_CHECK" "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py"
 
 "$PYTHON" "$RESPONSE_STATUS_CHECK" \
   "$ROOT_DIR/flushot.py" \
@@ -273,10 +279,31 @@ if ! grep -Fq "def validate_fetch_url" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "test_validate_fetch_url_requires_https_with_host" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "test_validate_fetch_url_rejects_embedded_credentials" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "test_validate_fetch_url_rejects_query_and_fragment" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_validate_fetch_url_rejects_explicit_or_malformed_ports" "$ROOT_DIR/tests/test_flushot.py" ||
+  ! grep -Fq "test_fetch_html_rejects_explicit_port_before_building_opener" "$ROOT_DIR/tests/test_flushot.py" ||
   ! grep -Fq "https://example.com/flu/weekly/" "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Scraper must validate fetch URLs before opening network requests." >&2
   exit 1
 fi
+
+for fetch_port_doc in AGENTS.md README.md SECURITY.md VISION.md CHANGES.md; do
+  if ! grep -Fq "Live CDC fetch URLs reject every explicit port before network request construction or redirect handling." "$ROOT_DIR/$fetch_port_doc"; then
+    printf '%s\n' "$fetch_port_doc must document the explicit fetch-port boundary." >&2
+    exit 1
+  fi
+done
+
+for fetch_port_plan_contract in \
+  "status: completed" \
+  "## Status: Completed" \
+  "## Work Completed" \
+  "## Verification Completed" \
+  "hostile mutations were rejected"; do
+  if ! grep -Fq "$fetch_port_plan_contract" "$FETCH_PORT_PLAN"; then
+    printf '%s\n' "Fetch port plan must record completed evidence: $fetch_port_plan_contract" >&2
+    exit 1
+  fi
+done
 
 if ! grep -Fq "def fetch_timeout" "$ROOT_DIR/flushot.py" ||
   ! grep -Fq "timeout_value = int(value)" "$ROOT_DIR/flushot.py" ||

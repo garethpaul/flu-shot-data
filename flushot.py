@@ -118,6 +118,13 @@ def validate_fetch_url(url: str) -> str:
         raise ValueError("CDC fetch URL must not include credentials.")
     if parsed.query or parsed.fragment:
         raise ValueError("CDC fetch URL must not include query strings or fragments.")
+    authority = parsed.netloc.rsplit("@", 1)[-1]
+    try:
+        port = parsed.port
+    except ValueError:
+        raise ValueError("CDC fetch URL must not include an explicit port.") from None
+    if port is not None or ":" in authority:
+        raise ValueError("CDC fetch URL must not include an explicit port.")
     if hostname != "cdc.gov" and not hostname.endswith(".cdc.gov"):
         raise ValueError("CDC fetch URL host must be cdc.gov.")
     return url

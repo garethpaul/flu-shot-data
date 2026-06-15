@@ -234,6 +234,26 @@ class FluShotParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "query strings or fragments"):
             flushot.validate_fetch_url("https://www.cdc.gov/flu/weekly/#summary")
 
+    def test_validate_fetch_url_rejects_explicit_or_malformed_ports(self):
+        rejected = (
+            "https://www.cdc.gov:/flu/weekly/",
+            "https://www.cdc.gov:443/flu/weekly/",
+            "https://www.cdc.gov:8443/flu/weekly/",
+            "https://www.cdc.gov:not-a-port/flu/weekly/",
+            "https://www.cdc.gov:65536/flu/weekly/",
+        )
+        for url in rejected:
+            with self.subTest(url=url):
+                with self.assertRaisesRegex(ValueError, "explicit port"):
+                    flushot.validate_fetch_url(url)
+
+    def test_fetch_html_rejects_explicit_port_before_building_opener(self):
+        with patch("flushot.build_opener") as build_opener:
+            with self.assertRaisesRegex(ValueError, "explicit port"):
+                flushot.fetch_html("https://www.cdc.gov:443/flu/weekly/")
+
+        build_opener.assert_not_called()
+
     def test_fetch_timeout_rejects_invalid_or_out_of_range_values(self):
         self.assertEqual(30, flushot.fetch_timeout(""))
         self.assertEqual(30, flushot.fetch_timeout("not-a-timeout"))
@@ -253,6 +273,16 @@ class FluShotParserTests(unittest.TestCase):
                 "Found",
                 {},
                 "https://example.com/private",
+            )
+
+        with self.assertRaisesRegex(ValueError, "explicit port"):
+            handler.redirect_request(
+                request,
+                None,
+                302,
+                "Found",
+                {},
+                "https://www.cdc.gov:8443/flu/weekly/",
             )
 
         with self.assertRaisesRegex(ValueError, "redirects are not allowed"):

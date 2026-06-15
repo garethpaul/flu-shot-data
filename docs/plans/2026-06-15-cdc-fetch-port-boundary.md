@@ -2,7 +2,7 @@
 title: CDC Fetch Port Boundary
 type: security
 date: 2026-06-15
-status: in_progress
+status: completed
 execution: code
 ---
 
@@ -31,7 +31,7 @@ response metadata policy, body limits, parser behavior, or output formats.
 ## Requirements
 
 - R1. Canonical HTTPS CDC URLs without an explicit port must remain accepted.
-- R2. Explicit default and non-default ports must be rejected.
+- R2. Empty, default, and non-default explicit ports must be rejected.
 - R3. Non-numeric and out-of-range ports must produce the same deterministic
   validation error rather than leaking `urlparse` implementation errors.
 - R4. Redirect targets must pass the same port boundary before rejection as an
@@ -95,4 +95,30 @@ Files:
   explicit ports keeps the reviewed authority boundary unambiguous.
 - Live CDC transport remains outside the offline validation suite.
 
-## Status: In Progress
+## Work Completed
+
+- Parsed the URL port inside a deterministic validation boundary and rejected
+  every explicit port before CDC host acceptance or request construction.
+- Preserved canonical CDC hosts without explicit ports while translating
+  non-numeric and out-of-range port parser failures into the same stable error.
+- Added direct URL, pre-opener fetch, and redirect-target regressions for
+  default, alternate, non-numeric, and out-of-range ports.
+- Added a focused static checker, baseline integration, and synchronized
+  contributor, security, maintenance, and change guidance.
+
+## Verification Completed
+
+- The focused fetch-port checker passed.
+- Python 3.12 passed all 41 offline unit and integration tests.
+- Repository-root and external-directory `make check` passed with bytecode
+  generation disabled.
+- Ten isolated hostile mutations were rejected: removed authority delimiter
+  parsing, removed port parsing, removed malformed-port translation, removed
+  explicit-port rejection, validation reordered after host acceptance, removed
+  default-port coverage, removed no-opener proof, removed redirect coverage,
+  removed guidance, and reopened plan completion evidence.
+- Shell syntax, in-memory compilation, exact diff, generated artifact, conflict
+  marker, and changed-line secret audits passed before delivery.
+- No live CDC request was made.
+
+## Status: Completed

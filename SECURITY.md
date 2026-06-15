@@ -34,6 +34,7 @@ Helpful reports include:
   opened.
 - Fetch URLs should reject query strings or fragments unless a reviewed source
   migration changes the data provenance boundary.
+- Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
 - Automatic redirects are rejected, final response URLs remain inside the

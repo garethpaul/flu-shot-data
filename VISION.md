@@ -35,6 +35,7 @@ Current baseline:
   opened.
 - Live fetch URLs reject query strings or fragments before network requests are
   opened.
+- Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Live fetch timeout values are bounded before `urlopen` is called, with
   invalid values falling back to 30 seconds.
 - Automatic redirects are rejected and final response URLs are revalidated

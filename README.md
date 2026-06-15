@@ -84,6 +84,7 @@ ambiguous records. Extracted week
 numbers must be between 1 and 53, and week-ending labels must parse as real
 calendar dates before records are written.
 Live fetch URLs must not include query strings or fragments.
+Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 Live fetch timeouts are bounded before `urlopen` is called; invalid or
 out-of-range timeout values fall back to 30 seconds.
 Automatic redirects are rejected, and final response URLs are revalidated
@@ -128,6 +129,7 @@ markup. Validate live scraping separately before publishing current data.
   requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source
   migration changes the provenance boundary.
+- Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Keep live fetch timeouts bounded so network requests do not use invalid or
   excessive caller-provided values.
 
