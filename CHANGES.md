@@ -2,6 +2,8 @@
 
 ## 2026-06-15
 
+- Preflighted output record headers, value types, and UTF-8 text before opening
+  either generated destination.
 - Preflighted CSV and JSON output parent directories before truncating either
   destination.
 - Rejected colliding CSV and JSON output destinations before file writes.

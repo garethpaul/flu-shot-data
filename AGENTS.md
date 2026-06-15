@@ -63,6 +63,8 @@ CDC weekly influenza summary table into CSV and JSON records.
   is opened or truncated.
 - Preserve validation of both output parents as existing directories before
   either file is opened or truncated.
+- Preserve exact-header, string-value, and strict UTF-8 output record
+  validation before either file is opened or truncated.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 
 ## Agent workflow

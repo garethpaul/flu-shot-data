@@ -33,6 +33,7 @@ FETCH_PORT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-cdc-fetch-port-boundary.md"
 FETCH_PORT_CHECK="$ROOT_DIR/scripts/check-fetch-port-boundary.py"
 OUTPUT_PATH_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-path-collision.md"
 OUTPUT_PARENT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-parent-preflight.md"
+OUTPUT_RECORD_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-record-preflight.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -80,6 +81,7 @@ for path in \
   "scripts/check-fetch-port-boundary.py" \
   "docs/plans/2026-06-15-output-path-collision.md" \
   "docs/plans/2026-06-15-output-parent-preflight.md" \
+  "docs/plans/2026-06-15-output-record-preflight.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -125,13 +127,15 @@ if any(contract not in tests for contract in test_contracts):
 writer = source[source.index("def write_outputs("):]
 order = (
     "validate_output_paths(csv_path, json_path)",
-    "records = list(records)",
+    "records = validate_output_records(records)",
     'csv_output.open("w"',
     'json_output.open("w"',
 )
+if any(contract not in writer for contract in order):
+    raise SystemExit("Output destinations and records must be validated before files are opened.")
 positions = [writer.index(contract) for contract in order]
 if positions != sorted(positions):
-    raise SystemExit("Output destinations must be validated before records or files are materialized.")
+    raise SystemExit("Output destinations and records must be validated before files are opened.")
 PY
 
 "$PYTHON" "$RESPONSE_STATUS_CHECK" \
@@ -912,6 +916,49 @@ required = (
 if statuses != ["status: completed"] or any(item not in plan for item in required):
     raise SystemExit(
         "Output parent preflight plan must record completed status and actual verification."
+    )
+PY
+
+if ! grep -Fq 'def validate_output_records(' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'records = validate_output_records(records)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'set(record) != expected_headers' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'if not isinstance(value, str):' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'value.encode("utf-8")' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rejects_extra_fields_before_truncation' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rejects_non_dictionary_rows_before_truncation' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rejects_non_string_values_before_truncation' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rejects_invalid_utf8_before_truncation' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'self.assertEqual(b"json sentinel", json_path.read_bytes())' "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Output records must be fully validated before either destination is truncated." >&2
+  exit 1
+fi
+
+if ! grep -Fq 'exact documented headers, string values, and' "$ROOT_DIR/README.md" || \
+  ! grep -Fq 'documented header set and contain only valid' "$ROOT_DIR/SECURITY.md" || \
+  ! grep -Fq 'Preflight the complete output record schema' "$ROOT_DIR/VISION.md" || \
+  ! grep -Fq 'Preflighted output record headers, value types, and UTF-8 text' "$ROOT_DIR/CHANGES.md" || \
+  ! grep -Fq 'exact-header, string-value, and strict UTF-8 output record' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Project docs must preserve output-record preflight behavior." >&2
+  exit 1
+fi
+
+python3 - "$OUTPUT_RECORD_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "all 50 offline tests",
+    "repository-root and external-directory `make check`",
+    "Seven isolated hostile mutations were rejected",
+    "No live CDC request was made",
+)
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Output record preflight plan must record completed status and actual verification."
     )
 PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

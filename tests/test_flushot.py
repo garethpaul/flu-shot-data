@@ -241,6 +241,43 @@ class FluShotParserTests(unittest.TestCase):
             self.assertEqual(b"sentinel", csv_path.read_bytes())
             self.assertEqual(b"parent sentinel", json_parent.read_bytes())
 
+    def test_write_outputs_rejects_extra_fields_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+        records[0]["UNEXPECTED"] = "value"
+
+        self.assert_malformed_records_preserve_outputs(records, "documented headers")
+
+    def test_write_outputs_rejects_non_dictionary_rows_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+        records[0] = ["not", "a", "record"]
+
+        self.assert_malformed_records_preserve_outputs(records, "documented headers")
+
+    def test_write_outputs_rejects_non_string_values_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+        records[0]["NUM_JURIS"] = 10
+
+        self.assert_malformed_records_preserve_outputs(records, "string values")
+
+    def test_write_outputs_rejects_invalid_utf8_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+        records[0]["HHS_REGION"] = "invalid \ud800"
+
+        self.assert_malformed_records_preserve_outputs(records, "valid UTF-8")
+
+    def assert_malformed_records_preserve_outputs(self, records, message):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_path = Path(tmpdir) / "flu.json"
+            csv_path.write_bytes(b"csv sentinel")
+            json_path.write_bytes(b"json sentinel")
+
+            with self.assertRaisesRegex(ValueError, message):
+                flushot.write_outputs(records, csv_path=csv_path, json_path=json_path)
+
+            self.assertEqual(b"csv sentinel", csv_path.read_bytes())
+            self.assertEqual(b"json sentinel", json_path.read_bytes())
+
     def test_parse_records_fails_when_metadata_is_missing(self):
         with self.assertRaisesRegex(ValueError, "week number and ending date"):
             flushot.parse_records("<html><table cellpadding='3'></table></html>")

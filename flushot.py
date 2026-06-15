@@ -405,13 +405,34 @@ def validate_output_paths(
     return csv_output, json_output
 
 
+def validate_output_records(records: Iterable[Dict[str, str]]) -> List[Dict[str, str]]:
+    output_records = list(records)
+    expected_headers = set(HEADERS)
+
+    for record in output_records:
+        if not isinstance(record, dict) or set(record) != expected_headers:
+            raise ValueError("Each output record must use exactly the documented headers.")
+
+        for value in record.values():
+            if not isinstance(value, str):
+                raise ValueError("Each output record must contain only string values.")
+            try:
+                value.encode("utf-8")
+            except UnicodeEncodeError as error:
+                raise ValueError(
+                    "Each output record must contain valid UTF-8 text."
+                ) from error
+
+    return output_records
+
+
 def write_outputs(
     records: Iterable[Dict[str, str]],
     csv_path: str | Path = "flu.csv",
     json_path: str | Path = "flu.json",
 ) -> None:
     csv_output, json_output = validate_output_paths(csv_path, json_path)
-    records = list(records)
+    records = validate_output_records(records)
 
     with csv_output.open("w", newline="", encoding="utf-8") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=HEADERS)

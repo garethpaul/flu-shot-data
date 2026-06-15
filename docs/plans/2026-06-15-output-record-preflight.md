@@ -1,7 +1,7 @@
 ---
 title: Output Record Preflight
 type: reliability
-status: planned
+status: completed
 date: 2026-06-15
 execution: code
 ---
@@ -49,3 +49,28 @@ can therefore destroy an existing CSV while leaving the paired JSON unchanged.
 - Do not implement multi-file transactional publication or directory creation.
 - Do not change parsing, CDC fetching, valid output schemas, or CLI behavior.
 - Do not merge or close stacked pull requests without owner authorization.
+
+## Status: Completed
+
+## Work Completed
+
+- Materialize and validate every output row after destination checks but before
+  either output file is opened.
+- Reject non-dictionary rows, non-exact headers, non-string values, and text
+  that cannot be encoded as strict UTF-8 with stable `ValueError` messages.
+- Preserve existing CSV and JSON bytes for every rejected record class.
+- Add source, regression, guidance, and completed-plan baseline contracts.
+
+## Verification Completed
+
+- The focused regressions failed against the prior implementation because an
+  extra field and invalid UTF-8 failed after CSV truncation while a non-string
+  value was accepted; all three passed after the record preflight was added.
+- Python 3.12.8 repository-root and external-directory `make check` passed
+  all 50 offline tests, static contracts, and in-memory syntax compilation.
+- Seven isolated hostile mutations were rejected for validator invocation,
+  exact-header enforcement, string-value enforcement, strict UTF-8 encoding,
+  sentinel regression coverage, maintained guidance, and plan completion
+  evidence.
+- Exact diff, generated-artifact, and credential-pattern audits passed.
+- No live CDC request was made.
