@@ -34,6 +34,7 @@ FETCH_PORT_CHECK="$ROOT_DIR/scripts/check-fetch-port-boundary.py"
 OUTPUT_PATH_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-path-collision.md"
 OUTPUT_PARENT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-parent-preflight.md"
 OUTPUT_RECORD_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-record-preflight.md"
+PAIRED_OUTPUT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-paired-output-publication.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -82,6 +83,7 @@ for path in \
   "docs/plans/2026-06-15-output-path-collision.md" \
   "docs/plans/2026-06-15-output-parent-preflight.md" \
   "docs/plans/2026-06-15-output-record-preflight.md" \
+  "docs/plans/2026-06-15-paired-output-publication.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -128,14 +130,20 @@ writer = source[source.index("def write_outputs("):]
 order = (
     "validate_output_paths(csv_path, json_path)",
     "records = validate_output_records(records)",
-    'csv_output.open("w"',
-    'json_output.open("w"',
+    "stage_outputs(records, csv_output, json_output)",
+    "publish_output_pair(((csv_output, csv_stage), (json_output, json_stage)))",
 )
 if any(contract not in writer for contract in order):
-    raise SystemExit("Output destinations and records must be validated before files are opened.")
+    raise SystemExit("Output destinations and records must be validated before staging and publication.")
 positions = [writer.index(contract) for contract in order]
 if positions != sorted(positions):
-    raise SystemExit("Output destinations and records must be validated before files are opened.")
+    raise SystemExit("Output destinations and records must be validated before staging and publication.")
+
+stage_writer = source[source.index("def stage_outputs("):source.index("def move_existing_output_to_backup(")]
+if 'csv_stage.open("w"' not in stage_writer or 'json_stage.open("w"' not in stage_writer:
+    raise SystemExit("Complete output staging must write only invocation-owned stage paths.")
+if 'csv_output.open("w"' in source or 'json_output.open("w"' in source:
+    raise SystemExit("Validated output destinations must not be opened directly for writing.")
 PY
 
 "$PYTHON" "$RESPONSE_STATUS_CHECK" \
@@ -959,6 +967,61 @@ required = (
 if statuses != ["status: completed"] or any(item not in plan for item in required):
     raise SystemExit(
         "Output record preflight plan must record completed status and actual verification."
+    )
+PY
+
+if ! grep -Fq 'def stage_outputs(' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'def reserve_output_stage(output: Path)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'creation_mode=0o666' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'stage.chmod(existing_mode)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'def move_existing_output_to_backup(output: Path)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'def publish_output_pair(' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'os.replace(state["stage"], state["output"])' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'for state in reversed(states):' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'retain_recovery_backups = True' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'recovery backups were retained' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'backup.unlink(missing_ok=True)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'test_write_outputs_preserves_pair_when_json_staging_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_preserves_destination_modes' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_preserves_distinct_symlink_destinations' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_cleans_first_stage_when_second_reservation_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_cleans_stage_when_mode_preservation_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rolls_back_pair_when_second_publication_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rolls_back_pair_when_second_backup_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_removes_new_pair_when_second_publication_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_retains_backup_when_rollback_is_incomplete' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'self.assertEqual({"flu.csv", "flu.json"}, set(os.listdir(tmpdir)))' "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Paired outputs must stage completely, roll back publication failures, and clean invocation artifacts." >&2
+  exit 1
+fi
+
+if ! grep -Fq 'staged completely before either destination is replaced' "$ROOT_DIR/README.md" || \
+  ! grep -Fq 'handled staging or publication exceptions' "$ROOT_DIR/SECURITY.md" || \
+  ! grep -Fq 'Roll back paired output publication failures' "$ROOT_DIR/VISION.md" || \
+  ! grep -Fq 'Added rollback-capable paired CSV and JSON publication' "$ROOT_DIR/CHANGES.md" || \
+  ! grep -Fq 'Preserve paired output rollback and invocation-owned artifact cleanup' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Project docs must preserve paired-output publication behavior and boundaries." >&2
+  exit 1
+fi
+
+python3 - "$PAIRED_OUTPUT_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "all 59 offline tests",
+    "repository-root and external-directory `make check`",
+    "isolated hostile mutations were rejected",
+    "No live CDC request was made",
+    "does not claim multi-path crash or power-loss atomicity",
+)
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Paired output publication plan must record completed status, actual verification, and the crash-atomicity boundary."
     )
 PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

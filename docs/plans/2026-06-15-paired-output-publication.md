@@ -1,7 +1,7 @@
 ---
 title: Paired Output Publication
 type: reliability
-status: planned
+status: completed
 date: 2026-06-15
 execution: code
 ---
@@ -80,3 +80,33 @@ different generations. The current regression reproduces this by injecting a
 - Successful writes retain the documented CSV schema and matching JSON rows.
 - No invocation-owned stage or backup files remain after success or failure.
 - The completed plan records actual local, mutation, audit, and hosted evidence.
+
+## Work Completed
+
+- Stage complete CSV and JSON files in their respective destination
+  directories, flush and sync them, and publish only after both stages succeed.
+- Move existing destinations to invocation-owned backups before replacement and
+  restore each prior destination in reverse order when backup or publication
+  raises.
+- Remove newly published paths when no prior output existed and remove every
+  invocation-owned stage or backup after success and handled failure.
+- Attempt rollback for both destinations when one restoration fails, retain
+  unresolved recovery backups, and surface a stable incomplete-rollback error.
+- Preserve default and existing output modes plus distinct symlink destination
+  behavior while publishing through resolved destination directories.
+- Add fault-injection coverage for JSON staging, second backup, and second
+  publication failures with both existing and initially absent outputs.
+
+## Verification Completed
+
+- The pre-fix fault injection proved a JSON serialization failure replaced the
+  CSV sentinel and truncated the JSON sentinel; both are preserved now.
+- Python 3.12 repository-root and external-directory `make check` passed all 59 offline tests,
+  source contracts, and in-memory syntax compilation.
+- Twelve focused isolated hostile mutations were rejected across staging, rollback,
+  initially absent outputs, valid output parity, artifact cleanup, guidance,
+  and completed-plan evidence.
+- Exact diff, generated-artifact, dependency/workflow-drift, mode,
+  conflict-marker, whitespace, and credential-shaped-addition audits passed.
+- No live CDC request was made.
+- This handled-exception rollback does not claim multi-path crash or power-loss atomicity.

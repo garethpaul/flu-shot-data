@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import re
+import secrets
+import stat
 from datetime import datetime
 from email.message import Message
 from html.parser import HTMLParser
@@ -402,7 +405,7 @@ def validate_output_paths(
     if paths_collide:
         raise ValueError("CSV and JSON outputs must use distinct filesystem targets.")
 
-    return csv_output, json_output
+    return csv_output.resolve(), json_output.resolve()
 
 
 def validate_output_records(records: Iterable[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -426,6 +429,139 @@ def validate_output_records(records: Iterable[Dict[str, str]]) -> List[Dict[str,
     return output_records
 
 
+def reserve_output_path(
+    output: Path,
+    purpose: str,
+    creation_mode: int = 0o600,
+) -> Path:
+    for _attempt in range(100):
+        path = output.parent / f".{output.name}.{purpose}-{secrets.token_hex(8)}"
+        try:
+            descriptor = os.open(
+                path,
+                os.O_CREAT | os.O_EXCL | os.O_RDWR,
+                creation_mode,
+            )
+        except FileExistsError:
+            continue
+        try:
+            os.close(descriptor)
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
+        return path
+    raise FileExistsError("Could not reserve a unique output publication path.")
+
+
+def reserve_output_stage(output: Path) -> Path:
+    try:
+        existing_mode = stat.S_IMODE(output.stat().st_mode)
+    except FileNotFoundError:
+        existing_mode = None
+
+    stage = reserve_output_path(output, "stage", creation_mode=0o666)
+    try:
+        if existing_mode is not None:
+            stage.chmod(existing_mode)
+    except Exception:
+        stage.unlink(missing_ok=True)
+        raise
+    return stage
+
+
+def stage_outputs(
+    records: List[Dict[str, str]],
+    csv_output: Path,
+    json_output: Path,
+) -> tuple[Path, Path]:
+    csv_stage = None
+    json_stage = None
+
+    try:
+        csv_stage = reserve_output_stage(csv_output)
+        json_stage = reserve_output_stage(json_output)
+
+        with csv_stage.open("w", newline="", encoding="utf-8") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=HEADERS)
+            writer.writeheader()
+            writer.writerows(records)
+            csv_file.flush()
+            os.fsync(csv_file.fileno())
+
+        with json_stage.open("w", encoding="utf-8") as json_file:
+            json.dump(records, json_file, indent=4)
+            json_file.write("\n")
+            json_file.flush()
+            os.fsync(json_file.fileno())
+    except Exception:
+        if csv_stage is not None:
+            csv_stage.unlink(missing_ok=True)
+        if json_stage is not None:
+            json_stage.unlink(missing_ok=True)
+        raise
+
+    return csv_stage, json_stage
+
+
+def move_existing_output_to_backup(output: Path) -> Path | None:
+    backup = reserve_output_path(output, "backup")
+    try:
+        os.replace(output, backup)
+    except FileNotFoundError:
+        backup.unlink(missing_ok=True)
+        return None
+    except Exception:
+        backup.unlink(missing_ok=True)
+        raise
+    return backup
+
+
+def publish_output_pair(
+    staged_outputs: tuple[tuple[Path, Path], tuple[Path, Path]],
+) -> None:
+    states = [
+        {
+            "output": output,
+            "stage": stage,
+            "backup": None,
+            "published": False,
+        }
+        for output, stage in staged_outputs
+    ]
+    retain_recovery_backups = False
+
+    try:
+        for state in states:
+            state["backup"] = move_existing_output_to_backup(state["output"])
+            os.replace(state["stage"], state["output"])
+            state["published"] = True
+    except Exception as publication_error:
+        rollback_errors = []
+        for state in reversed(states):
+            backup = state["backup"]
+            try:
+                if backup is not None:
+                    os.replace(backup, state["output"])
+                elif state["published"]:
+                    state["output"].unlink(missing_ok=True)
+            except Exception as rollback_error:
+                rollback_errors.append(rollback_error)
+
+        if rollback_errors:
+            retain_recovery_backups = True
+            raise RuntimeError(
+                "Paired output publication failed and rollback was incomplete; "
+                "recovery backups were retained."
+            ) from publication_error
+        raise
+    finally:
+        for state in states:
+            state["stage"].unlink(missing_ok=True)
+            backup = state["backup"]
+            if backup is not None and not retain_recovery_backups:
+                backup.unlink(missing_ok=True)
+
+
 def write_outputs(
     records: Iterable[Dict[str, str]],
     csv_path: str | Path = "flu.csv",
@@ -433,15 +569,8 @@ def write_outputs(
 ) -> None:
     csv_output, json_output = validate_output_paths(csv_path, json_path)
     records = validate_output_records(records)
-
-    with csv_output.open("w", newline="", encoding="utf-8") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=HEADERS)
-        writer.writeheader()
-        writer.writerows(records)
-
-    with json_output.open("w", encoding="utf-8") as json_file:
-        json.dump(records, json_file, indent=4)
-        json_file.write("\n")
+    csv_stage, json_stage = stage_outputs(records, csv_output, json_output)
+    publish_output_pair(((csv_output, csv_stage), (json_output, json_stage)))
 
 
 def run(

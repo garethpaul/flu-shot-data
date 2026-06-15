@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import stat
 import tempfile
 import unittest
 from email.message import Message
@@ -157,6 +158,56 @@ class FluShotParserTests(unittest.TestCase):
             with json_path.open(encoding="utf-8") as json_file:
                 json_rows = json.load(json_file)
 
+            self.assertEqual({"flu.csv", "flu.json"}, set(os.listdir(tmpdir)))
+
+    def test_write_outputs_preserves_destination_modes(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reference_path = Path(tmpdir) / "reference"
+            reference_path.write_text("reference", encoding="utf-8")
+            default_mode = stat.S_IMODE(reference_path.stat().st_mode)
+            reference_path.unlink()
+
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_path = Path(tmpdir) / "flu.json"
+            flushot.write_outputs(records, csv_path=csv_path, json_path=json_path)
+            self.assertEqual(default_mode, stat.S_IMODE(csv_path.stat().st_mode))
+            self.assertEqual(default_mode, stat.S_IMODE(json_path.stat().st_mode))
+
+            csv_path.chmod(0o640)
+            json_path.chmod(0o604)
+            flushot.write_outputs(records, csv_path=csv_path, json_path=json_path)
+            self.assertEqual(0o640, stat.S_IMODE(csv_path.stat().st_mode))
+            self.assertEqual(0o604, stat.S_IMODE(json_path.stat().st_mode))
+
+    def test_write_outputs_preserves_distinct_symlink_destinations(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_target = Path(tmpdir) / "csv-target"
+            json_target = Path(tmpdir) / "json-target"
+            csv_target.write_bytes(b"csv sentinel")
+            json_target.write_bytes(b"json sentinel")
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_path = Path(tmpdir) / "flu.json"
+            csv_path.symlink_to(csv_target)
+            json_path.symlink_to(json_target)
+
+            flushot.write_outputs(records, csv_path=csv_path, json_path=json_path)
+
+            self.assertTrue(csv_path.is_symlink())
+            self.assertTrue(json_path.is_symlink())
+            with csv_target.open(newline="", encoding="utf-8") as csv_file:
+                rows = list(csv.DictReader(csv_file))
+            with json_target.open(encoding="utf-8") as json_file:
+                json_rows = json.load(json_file)
+            self.assertEqual(rows, json_rows)
+            self.assertEqual(
+                {"csv-target", "json-target", "flu.csv", "flu.json"},
+                set(os.listdir(tmpdir)),
+            )
+
         self.assertEqual(flushot.HEADERS, list(rows[0].keys()))
         self.assertEqual(rows, json_rows)
 
@@ -265,6 +316,163 @@ class FluShotParserTests(unittest.TestCase):
 
         self.assert_malformed_records_preserve_outputs(records, "valid UTF-8")
 
+    def test_write_outputs_preserves_pair_when_json_staging_fails(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+
+            with patch("flushot.json.dump", side_effect=OSError("staging failure")):
+                with self.assertRaisesRegex(OSError, "staging failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
+
+    def test_write_outputs_cleans_first_stage_when_second_reservation_fails(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_reserve = flushot.reserve_output_stage
+
+            def fail_json_reservation(output):
+                if output == json_path:
+                    raise OSError("reservation failure")
+                return real_reserve(output)
+
+            with patch(
+                "flushot.reserve_output_stage",
+                side_effect=fail_json_reservation,
+            ):
+                with self.assertRaisesRegex(OSError, "reservation failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
+
+    def test_write_outputs_cleans_stage_when_mode_preservation_fails(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+
+            with patch("flushot.Path.chmod", side_effect=OSError("mode failure")):
+                with self.assertRaisesRegex(OSError, "mode failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
+
+    def test_write_outputs_rolls_back_pair_when_second_publication_fails(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_replace = os.replace
+
+            def fail_json_publication(source, destination):
+                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                    raise OSError("publication failure")
+                return real_replace(source, destination)
+
+            with patch("flushot.os.replace", side_effect=fail_json_publication):
+                with self.assertRaisesRegex(OSError, "publication failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
+
+    def test_write_outputs_rolls_back_pair_when_second_backup_fails(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_replace = os.replace
+
+            def fail_json_backup(source, destination):
+                if Path(source) == json_path and ".backup-" in Path(destination).name:
+                    raise OSError("backup failure")
+                return real_replace(source, destination)
+
+            with patch("flushot.os.replace", side_effect=fail_json_backup):
+                with self.assertRaisesRegex(OSError, "backup failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
+
+    def test_write_outputs_removes_new_pair_when_second_publication_fails(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_path = Path(tmpdir) / "flu.json"
+            real_replace = os.replace
+
+            def fail_json_publication(source, destination):
+                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                    raise OSError("publication failure")
+                return real_replace(source, destination)
+
+            with patch("flushot.os.replace", side_effect=fail_json_publication):
+                with self.assertRaisesRegex(OSError, "publication failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertEqual([], os.listdir(tmpdir))
+
+    def test_write_outputs_retains_backup_when_rollback_is_incomplete(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_replace = os.replace
+
+            def fail_publication_and_csv_restore(source, destination):
+                source_path = Path(source)
+                destination_path = Path(destination)
+                if ".stage-" in source_path.name and destination_path == json_path:
+                    raise OSError("publication failure")
+                if ".backup-" in source_path.name and destination_path == csv_path:
+                    raise OSError("rollback failure")
+                return real_replace(source, destination)
+
+            with patch(
+                "flushot.os.replace",
+                side_effect=fail_publication_and_csv_restore,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "rollback was incomplete"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertEqual(b"json sentinel", json_path.read_bytes())
+            recovery_backups = list(Path(tmpdir).glob(".flu.csv.backup-*"))
+            self.assertEqual(1, len(recovery_backups))
+            self.assertEqual(b"csv sentinel", recovery_backups[0].read_bytes())
+            self.assertEqual([], list(Path(tmpdir).glob("*.stage-*")))
+
     def assert_malformed_records_preserve_outputs(self, records, message):
         with tempfile.TemporaryDirectory() as tmpdir:
             csv_path = Path(tmpdir) / "flu.csv"
@@ -277,6 +485,23 @@ class FluShotParserTests(unittest.TestCase):
 
             self.assertEqual(b"csv sentinel", csv_path.read_bytes())
             self.assertEqual(b"json sentinel", json_path.read_bytes())
+
+    def write_output_sentinels(self, tmpdir):
+        csv_path = Path(tmpdir) / "flu.csv"
+        json_path = Path(tmpdir) / "flu.json"
+        csv_path.write_bytes(b"csv sentinel")
+        json_path.write_bytes(b"json sentinel")
+        return csv_path, json_path
+
+    def assert_output_sentinels_and_no_artifacts(
+        self,
+        tmpdir,
+        csv_path,
+        json_path,
+    ):
+        self.assertEqual(b"csv sentinel", csv_path.read_bytes())
+        self.assertEqual(b"json sentinel", json_path.read_bytes())
+        self.assertEqual({"flu.csv", "flu.json"}, set(os.listdir(tmpdir)))
 
     def test_parse_records_fails_when_metadata_is_missing(self):
         with self.assertRaisesRegex(ValueError, "week number and ending date"):

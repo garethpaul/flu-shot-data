@@ -65,6 +65,13 @@ CDC weekly influenza summary table into CSV and JSON records.
   either file is opened or truncated.
 - Preserve exact-header, string-value, and strict UTF-8 output record
   validation before either file is opened or truncated.
+- Preserve paired output rollback and invocation-owned artifact cleanup for
+  handled staging and publication failures; do not claim cross-path crash
+  atomicity.
+- If rollback itself fails, preserve recovery backups and surface the stable
+  incomplete-rollback error rather than deleting prior output bytes.
+- Preserve normal output modes and distinct symlink destination behavior when
+  changing the paired publication implementation.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 
 ## Agent workflow

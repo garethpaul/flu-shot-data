@@ -63,6 +63,13 @@ Helpful reports include:
   destination is opened or truncated.
 - Output records must match the documented header set and contain only valid
   UTF-8 strings before either destination is opened or truncated.
+- Paired CSV and JSON outputs must preserve their prior generation across
+  handled staging or publication exceptions and remove invocation-owned stage
+  and backup files. This does not provide multi-path crash atomicity.
+- Preserve existing output modes and distinct symlink target semantics while
+  staging publication files in the resolved destination directories.
+- If a rollback syscall fails, retain recovery backups instead of deleting the
+  prior generation; operators must resolve the reported incomplete rollback.
 - GitHub Actions runs the offline `make check` matrix with read-only repository
   permissions so fixture, fetch URL, parser, and output guardrails stay
   enforced without contacting live CDC endpoints.

@@ -61,6 +61,14 @@ Each output parent must be an existing directory before either file is opened,
 so an invalid second destination cannot truncate the first output.
 Every output record must use the exact documented headers, string values, and
 valid UTF-8 text before either destination is opened or truncated.
+CSV and JSON are staged completely before either destination is replaced. If
+handled staging or publication fails, both prior outputs are restored (or both
+new outputs remain absent) and invocation-owned temporary files are removed.
+Published outputs retain normal umask-derived or existing file modes, and
+distinct symlink destinations continue to update their resolved targets.
+This rollback does not make two filesystem paths crash- or power-loss-atomic.
+If rollback itself cannot restore a destination, the operation raises a stable
+error and retains invocation-owned backups for manual recovery.
 
 ## Testing and Verification
 

@@ -2,6 +2,9 @@
 
 ## 2026-06-15
 
+- Added rollback-capable paired CSV and JSON publication after complete
+  same-directory staging, retaining recovery backups if rollback is incomplete
+  and preserving output modes and distinct symlink targets.
 - Preflighted output record headers, value types, and UTF-8 text before opening
   either generated destination.
 - Preflighted CSV and JSON output parent directories before truncating either
