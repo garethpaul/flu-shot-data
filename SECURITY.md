@@ -59,6 +59,8 @@ Helpful reports include:
   written, including duplicates that differ only by letter case.
 - CSV and JSON outputs must resolve to distinct filesystem targets before
   either destination is opened or truncated.
+- CSV and JSON output parents must be existing directories before either
+  destination is opened or truncated.
 - GitHub Actions runs the offline `make check` matrix with read-only repository
   permissions so fixture, fetch URL, parser, and output guardrails stay
   enforced without contacting live CDC endpoints.

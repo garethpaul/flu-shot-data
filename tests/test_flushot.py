@@ -212,6 +212,35 @@ class FluShotParserTests(unittest.TestCase):
 
             self.assertEqual(b"sentinel", output_path.read_bytes())
 
+    def test_write_outputs_rejects_missing_parent_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_path = Path(tmpdir) / "missing" / "flu.json"
+            csv_path.write_bytes(b"sentinel")
+
+            with self.assertRaisesRegex(ValueError, "output parent must be an existing directory"):
+                flushot.write_outputs(records, csv_path=csv_path, json_path=json_path)
+
+            self.assertEqual(b"sentinel", csv_path.read_bytes())
+
+    def test_write_outputs_rejects_non_directory_parent_before_truncation(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_parent = Path(tmpdir) / "not-a-directory"
+            json_path = json_parent / "flu.json"
+            csv_path.write_bytes(b"sentinel")
+            json_parent.write_bytes(b"parent sentinel")
+
+            with self.assertRaisesRegex(ValueError, "output parent must be an existing directory"):
+                flushot.write_outputs(records, csv_path=csv_path, json_path=json_path)
+
+            self.assertEqual(b"sentinel", csv_path.read_bytes())
+            self.assertEqual(b"parent sentinel", json_parent.read_bytes())
+
     def test_parse_records_fails_when_metadata_is_missing(self):
         with self.assertRaisesRegex(ValueError, "week number and ending date"):
             flushot.parse_records("<html><table cellpadding='3'></table></html>")

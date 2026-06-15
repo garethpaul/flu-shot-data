@@ -32,6 +32,7 @@ DUPLICATE_CHARSET_CHECK="$ROOT_DIR/scripts/check-duplicate-charset.py"
 FETCH_PORT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-cdc-fetch-port-boundary.md"
 FETCH_PORT_CHECK="$ROOT_DIR/scripts/check-fetch-port-boundary.py"
 OUTPUT_PATH_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-path-collision.md"
+OUTPUT_PARENT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-parent-preflight.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -78,6 +79,7 @@ for path in \
   "docs/plans/2026-06-15-cdc-fetch-port-boundary.md" \
   "scripts/check-fetch-port-boundary.py" \
   "docs/plans/2026-06-15-output-path-collision.md" \
+  "docs/plans/2026-06-15-output-parent-preflight.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -872,6 +874,44 @@ required = (
 if statuses != ["status: completed"] or any(item not in plan for item in required):
     raise SystemExit(
         "Output path collision plan must record completed status and actual verification."
+    )
+PY
+
+if ! grep -Fq 'for output in (csv_output, json_output):' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'if not output.parent.resolve().is_dir():' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rejects_missing_parent_before_truncation' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_write_outputs_rejects_non_directory_parent_before_truncation' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'self.assertEqual(b"sentinel", csv_path.read_bytes())' "$ROOT_DIR/tests/test_flushot.py"; then
+  printf '%s\n' "Output parents must be preflighted before either destination is truncated." >&2
+  exit 1
+fi
+
+if ! grep -Fq 'existing directory before either file is opened' "$ROOT_DIR/README.md" || \
+  ! grep -Fq 'be existing directories before either' "$ROOT_DIR/SECURITY.md" || \
+  ! grep -Fq 'Preflight both output parent directories' "$ROOT_DIR/VISION.md" || \
+  ! grep -Fq 'Preflighted CSV and JSON output parent directories' "$ROOT_DIR/CHANGES.md" || \
+  ! grep -Fq 'output parents as existing directories' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Project docs must preserve output-parent preflight behavior." >&2
+  exit 1
+fi
+
+python3 - "$OUTPUT_PARENT_PLAN" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+frontmatter = plan.split("---", 2)[1]
+statuses = re.findall(r"^status: .+$", frontmatter, flags=re.MULTILINE)
+required = (
+    "all 46 offline tests",
+    "repository and external-directory `make check`",
+    "Six isolated hostile mutations were rejected",
+    "No live CDC request was made",
+)
+if statuses != ["status: completed"] or any(item not in plan for item in required):
+    raise SystemExit(
+        "Output parent preflight plan must record completed status and actual verification."
     )
 PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

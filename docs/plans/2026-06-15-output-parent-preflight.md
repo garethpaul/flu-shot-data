@@ -1,7 +1,7 @@
 ---
 title: Output Parent Preflight
 type: reliability
-status: planned
+status: completed
 date: 2026-06-15
 execution: code
 ---
@@ -49,3 +49,23 @@ failure.
 - Do not implement multi-file transactional publication or create directories.
 - Do not change parsing, CDC fetching, output schemas, or CLI behavior.
 - Do not merge or close stacked pull requests without owner authorization.
+
+## Status: Completed
+
+## Work Completed
+
+- Preflight both resolved output parents before opening either destination.
+- Reject missing and non-directory parents with a stable `ValueError` while
+  preserving existing CSV and parent-file sentinel bytes.
+- Add source, regression, guidance, and completed-plan baseline contracts.
+
+## Verification Completed
+
+- Focused regression failed against the prior implementation and passed after
+  the parent preflight was added.
+- Python 3.12.8 repository and external-directory `make check` passed all 46 offline tests,
+  static contracts, and in-memory syntax compilation.
+- Six isolated hostile mutations were rejected for the source guard, both
+  regressions, sentinel assertion, guidance, and completed plan evidence.
+- Exact diff, generated-artifact, and secret-pattern audits passed.
+- No live CDC request was made.

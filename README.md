@@ -57,6 +57,8 @@ Generated data files are ignored by default. Commit generated outputs only when
 the data provenance and source date are reviewed.
 CSV and JSON destinations must identify distinct filesystem targets; direct,
 symlink-resolved, and existing same-file aliases are rejected before writes.
+Each output parent must be an existing directory before either file is opened,
+so an invalid second destination cannot truncate the first output.
 
 ## Testing and Verification
 

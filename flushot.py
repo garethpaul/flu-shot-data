@@ -388,6 +388,10 @@ def validate_output_paths(
     csv_output = Path(csv_path)
     json_output = Path(json_path)
 
+    for output in (csv_output, json_output):
+        if not output.parent.resolve().is_dir():
+            raise ValueError("Each output parent must be an existing directory.")
+
     paths_collide = csv_output.resolve() == json_output.resolve()
     if not paths_collide:
         try:

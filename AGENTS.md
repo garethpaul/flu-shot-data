@@ -61,6 +61,8 @@ CDC weekly influenza summary table into CSV and JSON records.
   not add transparent decompression without a separate bounded design.
 - Keep CSV and JSON output destinations filesystem-distinct before either file
   is opened or truncated.
+- Preserve validation of both output parents as existing directories before
+  either file is opened or truncated.
 - Run `make check` before pushing parser, output schema, or documentation changes.
 
 ## Agent workflow
