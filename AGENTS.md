@@ -70,9 +70,9 @@ CDC weekly influenza summary table into CSV and JSON records.
   atomicity.
 - If rollback itself fails, preserve recovery backups and surface the stable
   incomplete-rollback error rather than deleting prior output bytes.
-- Do not let stage or backup cleanup errors mask primary publication or
-  incomplete-rollback errors; continue all remaining invocation-owned cleanup
-  attempts after the first cleanup failure.
+- Do not let stage or backup cleanup errors mask primary staging, publication,
+  or incomplete-rollback errors; continue all remaining invocation-owned
+  cleanup attempts after the first cleanup failure.
 - Preserve normal output modes and distinct symlink destination behavior when
   changing the paired publication implementation.
 - Run `make check` before pushing parser, output schema, or documentation changes.

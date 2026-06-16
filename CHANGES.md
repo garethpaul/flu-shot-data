@@ -2,6 +2,8 @@
 
 ## 2026-06-16
 
+- Preserved primary output-staging errors when temporary-file cleanup also
+  fails, while continuing cleanup of every reserved stage.
 - Preserved primary paired-publication and incomplete-rollback errors when
   invocation-owned artifact cleanup also fails, while continuing every
   remaining cleanup attempt.

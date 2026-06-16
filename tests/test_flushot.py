@@ -332,6 +332,38 @@ class FluShotParserTests(unittest.TestCase):
 
             self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
 
+    def test_cleanup_failure_does_not_mask_staging_failure(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_unlink = Path.unlink
+            cleanup_attempts = []
+
+            def fail_csv_stage_cleanup(path, *args, **kwargs):
+                cleanup_attempts.append(path.name)
+                if path.name.startswith(".flu.csv.stage-"):
+                    raise OSError("cleanup failure")
+                return real_unlink(path, *args, **kwargs)
+
+            with patch("flushot.json.dump", side_effect=OSError("staging failure")), patch(
+                "flushot.Path.unlink", new=fail_csv_stage_cleanup
+            ):
+                with self.assertRaisesRegex(OSError, "staging failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertEqual(b"csv sentinel", csv_path.read_bytes())
+            self.assertEqual(b"json sentinel", json_path.read_bytes())
+            self.assertEqual(1, len(list(Path(tmpdir).glob(".flu.csv.stage-*"))))
+            self.assertEqual([], list(Path(tmpdir).glob(".flu.json.stage-*")))
+            self.assertTrue(
+                any(name.startswith(".flu.json.stage-") for name in cleanup_attempts)
+            )
+
     def test_write_outputs_cleans_first_stage_when_second_reservation_fails(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 
@@ -372,6 +404,26 @@ class FluShotParserTests(unittest.TestCase):
                     )
 
             self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
+
+    def test_cleanup_failure_does_not_mask_mode_preservation_failure(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+
+            with patch("flushot.Path.chmod", side_effect=OSError("mode failure")), patch(
+                "flushot.Path.unlink", side_effect=OSError("cleanup failure")
+            ):
+                with self.assertRaisesRegex(OSError, "mode failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertEqual(b"csv sentinel", csv_path.read_bytes())
+            self.assertEqual(b"json sentinel", json_path.read_bytes())
+            self.assertEqual(1, len(list(Path(tmpdir).glob(".flu.csv.stage-*"))))
 
     def test_write_outputs_rolls_back_pair_when_second_publication_fails(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))

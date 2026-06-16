@@ -430,6 +430,17 @@ def validate_output_records(records: Iterable[Dict[str, str]]) -> List[Dict[str,
     return output_records
 
 
+def cleanup_output_paths(paths: Iterable[Path]) -> Exception | None:
+    cleanup_error = None
+    for path in paths:
+        try:
+            path.unlink(missing_ok=True)
+        except Exception as error:
+            if cleanup_error is None:
+                cleanup_error = error
+    return cleanup_error
+
+
 def reserve_output_path(
     output: Path,
     purpose: str,
@@ -448,7 +459,7 @@ def reserve_output_path(
         try:
             os.close(descriptor)
         except Exception:
-            path.unlink(missing_ok=True)
+            cleanup_output_paths((path,))
             raise
         return path
     raise FileExistsError("Could not reserve a unique output publication path.")
@@ -465,7 +476,7 @@ def reserve_output_stage(output: Path) -> Path:
         if existing_mode is not None:
             stage.chmod(existing_mode)
     except Exception:
-        stage.unlink(missing_ok=True)
+        cleanup_output_paths((stage,))
         raise
     return stage
 
@@ -495,10 +506,9 @@ def stage_outputs(
             json_file.flush()
             os.fsync(json_file.fileno())
     except Exception:
-        if csv_stage is not None:
-            csv_stage.unlink(missing_ok=True)
-        if json_stage is not None:
-            json_stage.unlink(missing_ok=True)
+        cleanup_output_paths(
+            stage for stage in (csv_stage, json_stage) if stage is not None
+        )
         raise
 
     return csv_stage, json_stage
@@ -509,10 +519,12 @@ def move_existing_output_to_backup(output: Path) -> Path | None:
     try:
         os.replace(output, backup)
     except FileNotFoundError:
-        backup.unlink(missing_ok=True)
+        cleanup_error = cleanup_output_paths((backup,))
+        if cleanup_error is not None:
+            raise cleanup_error
         return None
     except Exception:
-        backup.unlink(missing_ok=True)
+        cleanup_output_paths((backup,))
         raise
     return backup
 
@@ -557,20 +569,14 @@ def publish_output_pair(
         raise
     finally:
         active_error = sys.exc_info()[1]
-        cleanup_error = None
+        cleanup_paths = []
         for state in states:
-            cleanup_paths = [state["stage"]]
+            cleanup_paths.append(state["stage"])
             backup = state["backup"]
             if backup is not None and not retain_recovery_backups:
                 cleanup_paths.append(backup)
 
-            for path in cleanup_paths:
-                try:
-                    path.unlink(missing_ok=True)
-                except Exception as error:
-                    if cleanup_error is None:
-                        cleanup_error = error
-
+        cleanup_error = cleanup_output_paths(cleanup_paths)
         if cleanup_error is not None and active_error is None:
             raise cleanup_error
 

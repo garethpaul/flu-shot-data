@@ -36,6 +36,7 @@ OUTPUT_PARENT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-parent-preflight.md"
 OUTPUT_RECORD_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-record-preflight.md"
 PAIRED_OUTPUT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-paired-output-publication.md"
 CLEANUP_ERROR_PLAN="$ROOT_DIR/docs/plans/2026-06-16-output-cleanup-error-preservation.md"
+STAGING_CLEANUP_PLAN="$ROOT_DIR/docs/plans/2026-06-16-staging-cleanup-error-preservation.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -86,6 +87,7 @@ for path in \
   "docs/plans/2026-06-15-output-record-preflight.md" \
   "docs/plans/2026-06-15-paired-output-publication.md" \
   "docs/plans/2026-06-16-output-cleanup-error-preservation.md" \
+  "docs/plans/2026-06-16-staging-cleanup-error-preservation.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -974,6 +976,8 @@ PY
 
 if ! grep -Fq 'def stage_outputs(' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'def reserve_output_stage(output: Path)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'def cleanup_output_paths(paths: Iterable[Path])' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'cleanup_output_paths(' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'creation_mode=0o666' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'stage.chmod(existing_mode)' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'def move_existing_output_to_backup(output: Path)' "$ROOT_DIR/flushot.py" || \
@@ -984,10 +988,11 @@ if ! grep -Fq 'def stage_outputs(' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'recovery backups were retained' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'active_error = sys.exc_info()[1]' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'cleanup_error = None' "$ROOT_DIR/flushot.py" || \
-  ! grep -Fq 'for path in cleanup_paths:' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'if cleanup_error is None:' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'if cleanup_error is not None and active_error is None:' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'test_write_outputs_preserves_pair_when_json_staging_fails' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_cleanup_failure_does_not_mask_staging_failure' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_cleanup_failure_does_not_mask_mode_preservation_failure' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_preserves_destination_modes' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_preserves_distinct_symlink_destinations' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_cleans_first_stage_when_second_reservation_fails' "$ROOT_DIR/tests/test_flushot.py" || \
@@ -1007,13 +1012,13 @@ fi
 if ! grep -Fq 'staged completely before either destination is replaced' "$ROOT_DIR/README.md" || \
   ! grep -Fq 'every remaining invocation-owned cleanup is still attempted' "$ROOT_DIR/README.md" || \
   ! grep -Fq 'handled staging or publication exceptions' "$ROOT_DIR/SECURITY.md" || \
-  ! grep -Fq 'Cleanup failures must not mask a primary publication' "$ROOT_DIR/SECURITY.md" || \
+  ! grep -Fq 'Cleanup failures must not mask a primary staging' "$ROOT_DIR/SECURITY.md" || \
   ! grep -Fq 'Roll back paired output publication failures' "$ROOT_DIR/VISION.md" || \
-  ! grep -Fq 'Preserve primary publication failures across cleanup errors' "$ROOT_DIR/VISION.md" || \
+  ! grep -Fq 'Preserve primary staging and publication failures across cleanup errors' "$ROOT_DIR/VISION.md" || \
   ! grep -Fq 'Added rollback-capable paired CSV and JSON publication' "$ROOT_DIR/CHANGES.md" || \
   ! grep -Fq 'Preserved primary paired-publication and incomplete-rollback errors' "$ROOT_DIR/CHANGES.md" || \
   ! grep -Fq 'Preserve paired output rollback and invocation-owned artifact cleanup' "$ROOT_DIR/AGENTS.md" || \
-  ! grep -Fq 'Do not let stage or backup cleanup errors mask primary publication' "$ROOT_DIR/AGENTS.md"; then
+  ! grep -Fq 'Do not let stage or backup cleanup errors mask primary staging' "$ROOT_DIR/AGENTS.md"; then
   printf '%s\n' "Project docs must preserve paired-output publication behavior and boundaries." >&2
   exit 1
 fi
@@ -1056,6 +1061,42 @@ required = (
 if any(item not in normalized_plan for item in required):
     raise SystemExit(
         "Output cleanup error preservation plan must record completed status, "
+        "actual verification, and the crash-atomicity boundary."
+    )
+PY
+
+"$PYTHON" - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" "$STAGING_CLEANUP_PLAN" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+tests = Path(sys.argv[2]).read_text()
+plan = " ".join(Path(sys.argv[3]).read_text().split())
+
+stage_writer = source[source.index("def stage_outputs("):source.index("def move_existing_output_to_backup(")]
+stage_reservation = source[source.index("def reserve_output_stage("):source.index("def stage_outputs(")]
+required_tests = (
+    "test_cleanup_failure_does_not_mask_staging_failure",
+    "test_cleanup_failure_does_not_mask_mode_preservation_failure",
+)
+required_plan = (
+    "Status: Completed",
+    "All 64 offline tests passed",
+    "Repository-root and external-directory `make check` passed",
+    "Five isolated mutations were rejected",
+    "no live CDC request was made",
+    "does not claim process-crash, kernel, filesystem, or power-loss atomicity",
+)
+
+if "cleanup_output_paths(" not in stage_writer or ".unlink(" in stage_writer:
+    raise SystemExit("Staging failures must use shared cleanup without masking the primary error.")
+if "cleanup_output_paths((stage,))" not in stage_reservation or ".unlink(" in stage_reservation:
+    raise SystemExit("Mode-preservation failures must not be masked by stage cleanup.")
+if any(name not in tests for name in required_tests):
+    raise SystemExit("Staging cleanup regressions must remain registered.")
+if any(item not in plan for item in required_plan):
+    raise SystemExit(
+        "Staging cleanup error preservation plan must record completed status, "
         "actual verification, and the crash-atomicity boundary."
     )
 PY

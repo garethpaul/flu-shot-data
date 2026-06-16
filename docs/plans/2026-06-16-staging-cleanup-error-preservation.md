@@ -1,6 +1,6 @@
 # Staging Cleanup Error Preservation
 
-Status: In Progress
+Status: Completed
 
 ## Context
 
@@ -53,3 +53,30 @@ replace the actionable staging error and stop cleanup of the other stage.
 - Helper reuse must not alter publication rollback or recovery-backup retention.
 - Exception propagation must remain deterministic: primary staging errors take
   precedence, while cleanup-only failures remain visible where applicable.
+
+## Work Completed
+
+- Added a shared owned-path cleanup helper that attempts every path and returns
+  the first cleanup error.
+- Preserved active reservation, mode-preservation, serialization, and backup
+  movement errors when cleanup also fails.
+- Reused the helper for publication cleanup without changing rollback or
+  recovery-backup retention behavior.
+- Added fault-injection regressions and baseline contracts for staging cleanup
+  ordering and primary-error preservation.
+- Updated project guidance and the changelog with the expanded guarantee.
+
+## Actual Verification
+
+- All 64 offline tests passed in the focused suite and in `make check`,
+  `make lint`, `make test`, and `make build`.
+- Repository-root and external-directory `make check` passed with explicit
+  timeouts.
+- Five isolated mutations were rejected across direct staging cleanup,
+  stop-after-first-error behavior, direct mode-failure cleanup, test
+  registration, and completed-plan evidence.
+- Shell syntax, Python compilation, whitespace, exact diff, generated
+  artifacts, credential-like additions, file modes, and branch/upstream state
+  were audited; no live CDC request was made.
+- The handled-exception guarantee still does not claim process-crash, kernel,
+  filesystem, or power-loss atomicity.
