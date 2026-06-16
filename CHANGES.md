@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-16
+
+- Preserved primary paired-publication and incomplete-rollback errors when
+  invocation-owned artifact cleanup also fails, while continuing every
+  remaining cleanup attempt.
+
 ## 2026-06-15
 
 - Added rollback-capable paired CSV and JSON publication after complete

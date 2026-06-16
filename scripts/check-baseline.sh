@@ -35,6 +35,7 @@ OUTPUT_PATH_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-path-collision.md"
 OUTPUT_PARENT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-parent-preflight.md"
 OUTPUT_RECORD_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-record-preflight.md"
 PAIRED_OUTPUT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-paired-output-publication.md"
+CLEANUP_ERROR_PLAN="$ROOT_DIR/docs/plans/2026-06-16-output-cleanup-error-preservation.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -84,6 +85,7 @@ for path in \
   "docs/plans/2026-06-15-output-parent-preflight.md" \
   "docs/plans/2026-06-15-output-record-preflight.md" \
   "docs/plans/2026-06-15-paired-output-publication.md" \
+  "docs/plans/2026-06-16-output-cleanup-error-preservation.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -980,7 +982,11 @@ if ! grep -Fq 'def stage_outputs(' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'for state in reversed(states):' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'retain_recovery_backups = True' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'recovery backups were retained' "$ROOT_DIR/flushot.py" || \
-  ! grep -Fq 'backup.unlink(missing_ok=True)' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'active_error = sys.exc_info()[1]' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'cleanup_error = None' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'for path in cleanup_paths:' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'if cleanup_error is None:' "$ROOT_DIR/flushot.py" || \
+  ! grep -Fq 'if cleanup_error is not None and active_error is None:' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'test_write_outputs_preserves_pair_when_json_staging_fails' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_preserves_destination_modes' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_preserves_distinct_symlink_destinations' "$ROOT_DIR/tests/test_flushot.py" || \
@@ -990,16 +996,24 @@ if ! grep -Fq 'def stage_outputs(' "$ROOT_DIR/flushot.py" || \
   ! grep -Fq 'test_write_outputs_rolls_back_pair_when_second_backup_fails' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_removes_new_pair_when_second_publication_fails' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'test_write_outputs_retains_backup_when_rollback_is_incomplete' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_cleanup_failure_does_not_mask_publication_failure' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_cleanup_failure_does_not_mask_incomplete_rollback' "$ROOT_DIR/tests/test_flushot.py" || \
+  ! grep -Fq 'test_successful_publication_attempts_all_cleanup_after_failure' "$ROOT_DIR/tests/test_flushot.py" || \
   ! grep -Fq 'self.assertEqual({"flu.csv", "flu.json"}, set(os.listdir(tmpdir)))' "$ROOT_DIR/tests/test_flushot.py"; then
   printf '%s\n' "Paired outputs must stage completely, roll back publication failures, and clean invocation artifacts." >&2
   exit 1
 fi
 
 if ! grep -Fq 'staged completely before either destination is replaced' "$ROOT_DIR/README.md" || \
+  ! grep -Fq 'every remaining invocation-owned cleanup is still attempted' "$ROOT_DIR/README.md" || \
   ! grep -Fq 'handled staging or publication exceptions' "$ROOT_DIR/SECURITY.md" || \
+  ! grep -Fq 'Cleanup failures must not mask a primary publication' "$ROOT_DIR/SECURITY.md" || \
   ! grep -Fq 'Roll back paired output publication failures' "$ROOT_DIR/VISION.md" || \
+  ! grep -Fq 'Preserve primary publication failures across cleanup errors' "$ROOT_DIR/VISION.md" || \
   ! grep -Fq 'Added rollback-capable paired CSV and JSON publication' "$ROOT_DIR/CHANGES.md" || \
-  ! grep -Fq 'Preserve paired output rollback and invocation-owned artifact cleanup' "$ROOT_DIR/AGENTS.md"; then
+  ! grep -Fq 'Preserved primary paired-publication and incomplete-rollback errors' "$ROOT_DIR/CHANGES.md" || \
+  ! grep -Fq 'Preserve paired output rollback and invocation-owned artifact cleanup' "$ROOT_DIR/AGENTS.md" || \
+  ! grep -Fq 'Do not let stage or backup cleanup errors mask primary publication' "$ROOT_DIR/AGENTS.md"; then
   printf '%s\n' "Project docs must preserve paired-output publication behavior and boundaries." >&2
   exit 1
 fi
@@ -1022,6 +1036,27 @@ required = (
 if statuses != ["status: completed"] or any(item not in plan for item in required):
     raise SystemExit(
         "Paired output publication plan must record completed status, actual verification, and the crash-atomicity boundary."
+    )
+PY
+
+"$PYTHON" - "$CLEANUP_ERROR_PLAN" <<'PY'
+import sys
+from pathlib import Path
+
+plan = Path(sys.argv[1]).read_text()
+normalized_plan = " ".join(plan.split())
+required = (
+    "Status: Completed",
+    "All 62 offline tests passed",
+    "Repository-root and external-directory `make check` passed",
+    "Six isolated mutations were rejected",
+    "no live CDC request was made",
+    "does not claim process-crash, kernel, filesystem, or power-loss atomicity",
+)
+if any(item not in normalized_plan for item in required):
+    raise SystemExit(
+        "Output cleanup error preservation plan must record completed status, "
+        "actual verification, and the crash-atomicity boundary."
     )
 PY
 printf '%s\n' "flu-shot-data Python baseline checks passed."

@@ -473,6 +473,122 @@ class FluShotParserTests(unittest.TestCase):
             self.assertEqual(b"csv sentinel", recovery_backups[0].read_bytes())
             self.assertEqual([], list(Path(tmpdir).glob("*.stage-*")))
 
+    def test_cleanup_failure_does_not_mask_publication_failure(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_replace = os.replace
+            real_unlink = Path.unlink
+            cleanup_attempts = []
+
+            def fail_json_publication(source, destination):
+                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                    raise OSError("publication failure")
+                return real_replace(source, destination)
+
+            def fail_json_stage_cleanup(path, *args, **kwargs):
+                cleanup_attempts.append(path.name)
+                if path.name.startswith(".flu.json.stage-"):
+                    raise OSError("cleanup failure")
+                return real_unlink(path, *args, **kwargs)
+
+            with patch(
+                "flushot.os.replace", side_effect=fail_json_publication
+            ), patch("flushot.Path.unlink", new=fail_json_stage_cleanup):
+                with self.assertRaisesRegex(OSError, "publication failure") as raised:
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertIsNone(raised.exception.__cause__)
+            self.assertEqual(b"csv sentinel", csv_path.read_bytes())
+            self.assertEqual(b"json sentinel", json_path.read_bytes())
+            self.assertTrue(
+                any(name.startswith(".flu.csv.backup-") for name in cleanup_attempts)
+            )
+            self.assertTrue(
+                any(name.startswith(".flu.json.backup-") for name in cleanup_attempts)
+            )
+            self.assertEqual(1, len(list(Path(tmpdir).glob(".flu.json.stage-*"))))
+
+    def test_cleanup_failure_does_not_mask_incomplete_rollback(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_replace = os.replace
+            real_unlink = Path.unlink
+
+            def fail_publication_and_csv_restore(source, destination):
+                source_path = Path(source)
+                destination_path = Path(destination)
+                if ".stage-" in source_path.name and destination_path == json_path:
+                    raise OSError("publication failure")
+                if ".backup-" in source_path.name and destination_path == csv_path:
+                    raise OSError("rollback failure")
+                return real_replace(source, destination)
+
+            def fail_json_stage_cleanup(path, *args, **kwargs):
+                if path.name.startswith(".flu.json.stage-"):
+                    raise OSError("cleanup failure")
+                return real_unlink(path, *args, **kwargs)
+
+            with patch(
+                "flushot.os.replace",
+                side_effect=fail_publication_and_csv_restore,
+            ), patch("flushot.Path.unlink", new=fail_json_stage_cleanup):
+                with self.assertRaisesRegex(
+                    RuntimeError, "rollback was incomplete"
+                ) as raised:
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertIsInstance(raised.exception.__cause__, OSError)
+            self.assertEqual("publication failure", str(raised.exception.__cause__))
+            recovery_backups = list(Path(tmpdir).glob(".flu.csv.backup-*"))
+            self.assertEqual(1, len(recovery_backups))
+            self.assertEqual(b"csv sentinel", recovery_backups[0].read_bytes())
+            self.assertEqual(b"json sentinel", json_path.read_bytes())
+
+    def test_successful_publication_attempts_all_cleanup_after_failure(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path, json_path = self.write_output_sentinels(tmpdir)
+            real_unlink = Path.unlink
+            cleanup_attempts = []
+
+            def fail_csv_backup_cleanup(path, *args, **kwargs):
+                cleanup_attempts.append(path.name)
+                if path.name.startswith(".flu.csv.backup-"):
+                    raise OSError("cleanup failure")
+                return real_unlink(path, *args, **kwargs)
+
+            with patch("flushot.Path.unlink", new=fail_csv_backup_cleanup):
+                with self.assertRaisesRegex(OSError, "cleanup failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assertNotEqual(b"csv sentinel", csv_path.read_bytes())
+            self.assertEqual(records, json.loads(json_path.read_text(encoding="utf-8")))
+            self.assertEqual(1, len(list(Path(tmpdir).glob(".flu.csv.backup-*"))))
+            self.assertEqual([], list(Path(tmpdir).glob(".flu.json.backup-*")))
+            self.assertTrue(
+                any(name.startswith(".flu.json.stage-") for name in cleanup_attempts)
+            )
+            self.assertTrue(
+                any(name.startswith(".flu.json.backup-") for name in cleanup_attempts)
+            )
+
     def assert_malformed_records_preserve_outputs(self, records, message):
         with tempfile.TemporaryDirectory() as tmpdir:
             csv_path = Path(tmpdir) / "flu.csv"

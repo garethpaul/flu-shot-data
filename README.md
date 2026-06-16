@@ -64,6 +64,8 @@ valid UTF-8 text before either destination is opened or truncated.
 CSV and JSON are staged completely before either destination is replaced. If
 handled staging or publication fails, both prior outputs are restored (or both
 new outputs remain absent) and invocation-owned temporary files are removed.
+If cleanup also fails, the primary publication or incomplete-rollback error is
+preserved and every remaining invocation-owned cleanup is still attempted.
 Published outputs retain normal umask-derived or existing file modes, and
 distinct symlink destinations continue to update their resolved targets.
 This rollback does not make two filesystem paths crash- or power-loss-atomic.

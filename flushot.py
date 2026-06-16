@@ -9,6 +9,7 @@ import os
 import re
 import secrets
 import stat
+import sys
 from datetime import datetime
 from email.message import Message
 from html.parser import HTMLParser
@@ -555,11 +556,23 @@ def publish_output_pair(
             ) from publication_error
         raise
     finally:
+        active_error = sys.exc_info()[1]
+        cleanup_error = None
         for state in states:
-            state["stage"].unlink(missing_ok=True)
+            cleanup_paths = [state["stage"]]
             backup = state["backup"]
             if backup is not None and not retain_recovery_backups:
-                backup.unlink(missing_ok=True)
+                cleanup_paths.append(backup)
+
+            for path in cleanup_paths:
+                try:
+                    path.unlink(missing_ok=True)
+                except Exception as error:
+                    if cleanup_error is None:
+                        cleanup_error = error
+
+        if cleanup_error is not None and active_error is None:
+            raise cleanup_error
 
 
 def write_outputs(

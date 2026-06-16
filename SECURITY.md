@@ -70,6 +70,9 @@ Helpful reports include:
   staging publication files in the resolved destination directories.
 - If a rollback syscall fails, retain recovery backups instead of deleting the
   prior generation; operators must resolve the reported incomplete rollback.
+- Cleanup failures must not mask a primary publication or incomplete-rollback
+  error, and one failed cleanup attempt must not stop later owned-artifact
+  cleanup attempts.
 - GitHub Actions runs the offline `make check` matrix with read-only repository
   permissions so fixture, fetch URL, parser, and output guardrails stay
   enforced without contacting live CDC endpoints.

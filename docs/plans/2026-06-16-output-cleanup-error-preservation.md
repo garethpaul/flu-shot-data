@@ -1,6 +1,6 @@
 # Output Cleanup Error Preservation
 
-Status: Planned
+Status: Completed
 
 ## Context
 
@@ -33,12 +33,12 @@ cleanup of later invocation-owned artifacts.
 
 ## Implementation
 
-1. Track the primary publication or rollback exception through the cleanup
-   phase.
+1. Detect whether a primary publication or rollback exception is active while
+   the unconditional cleanup phase runs.
 2. Run each stage and eligible backup cleanup independently, collecting the
    first cleanup exception without stopping later attempts.
-3. Re-raise the primary error after cleanup; otherwise raise the first cleanup
-   error.
+3. Let the active primary error propagate after cleanup; otherwise raise the
+   first cleanup error.
 4. Add focused tests for publication-plus-cleanup failure,
    incomplete-rollback-plus-cleanup failure, and successful-publication cleanup
    failure.
@@ -62,3 +62,30 @@ cleanup of later invocation-owned artifacts.
 - Cleanup failures can leave invocation-owned artifacts; tests must prove all
   remaining cleanup attempts still run and recovery backups are retained only
   when required.
+
+## Work Completed
+
+- Preserved active publication and incomplete-rollback exceptions through the
+  unconditional cleanup phase.
+- Attempted every invocation-owned stage and disposable backup cleanup after a
+  cleanup failure, raising the first cleanup error only after otherwise
+  successful publication.
+- Added fault-injection regressions for primary publication errors,
+  incomplete rollback, and successful publication with cleanup failure.
+- Updated repository guidance, security posture, changelog, and static
+  baseline contracts.
+
+## Actual Verification
+
+- All 62 offline tests passed in the focused suite and in `make check`,
+  `make lint`, `make test`, and `make build`.
+- Repository-root and external-directory `make check` passed with bounded
+  commands.
+- Six isolated mutations were rejected across active-error detection,
+  continue-after-cleanup behavior, recovery-backup retention, test
+  registration, guidance, and explicit exception cause chaining.
+- Shell syntax, Python compilation, whitespace, exact diff, generated
+  artifacts, credential-like additions, file modes, and branch/upstream state
+  were audited; no live CDC request was made.
+- The handled-exception guarantee still does not claim process-crash, kernel,
+  filesystem, or power-loss atomicity.

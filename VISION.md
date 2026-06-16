@@ -71,6 +71,8 @@ Current baseline:
 - Roll back paired output publication failures without leaving mixed
   generations or invocation-owned temporary artifacts.
 - Retain recoverable prior output bytes when rollback itself cannot complete.
+- Preserve primary publication failures across cleanup errors while attempting
+  every remaining invocation-owned artifact cleanup.
 - Preserve output file modes and resolved symlink targets across publication.
 - `make lint`, `make test`, and `make build` run the same offline baseline
   while no narrower gates are installed.
