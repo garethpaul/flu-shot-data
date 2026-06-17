@@ -103,6 +103,9 @@ All 68 offline tests passed, along with in-memory source and test compilation
 and POSIX shell syntax validation. Repository-root and external-directory
 `make check` passed with bytecode writes disabled.
 
+Hosted run `27673714464` passed its Python 3.10, 3.12, and 3.14 matrix at
+implementation commit `363d61aebae31c41ba769014551104bb24172afd`.
+
 Eight isolated mutations were rejected across the regular-file predicate,
 stable diagnostic, directory and FIFO regressions, artifact assertions,
 maintained guidance, and completed plan status.

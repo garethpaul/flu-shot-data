@@ -1130,6 +1130,8 @@ required_plan = (
     "All 68 offline tests passed",
     "Repository-root and external-directory `make check` passed",
     "Eight isolated mutations were rejected",
+    "Hosted run `27673714464` passed",
+    "`363d61aebae31c41ba769014551104bb24172afd`",
     "no live CDC request was made",
     "does not claim crash, kernel, filesystem, or power-loss atomicity",
 )
