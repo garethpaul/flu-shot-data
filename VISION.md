@@ -66,6 +66,7 @@ Current baseline:
 - Reject direct, symlink-resolved, and same-file output destination collisions
   before materializing records or opening generated files.
 - Preflight both output parent directories before opening generated files.
+- Reject existing non-regular output targets before staging or publication.
 - Preflight the complete output record schema and UTF-8 text before opening
   generated files.
 - Roll back paired output publication failures without leaving mixed

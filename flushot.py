@@ -391,10 +391,20 @@ def validate_output_paths(
 ) -> tuple[Path, Path]:
     csv_output = Path(csv_path)
     json_output = Path(json_path)
+    resolved_outputs = []
 
     for output in (csv_output, json_output):
         if not output.parent.resolve().is_dir():
             raise ValueError("Each output parent must be an existing directory.")
+        resolved_output = output.resolve()
+        try:
+            output_mode = resolved_output.stat().st_mode
+        except FileNotFoundError:
+            pass
+        else:
+            if not stat.S_ISREG(output_mode):
+                raise ValueError("Each existing output target must be a regular file.")
+        resolved_outputs.append(resolved_output)
 
     paths_collide = csv_output.resolve() == json_output.resolve()
     if not paths_collide:
@@ -406,7 +416,7 @@ def validate_output_paths(
     if paths_collide:
         raise ValueError("CSV and JSON outputs must use distinct filesystem targets.")
 
-    return csv_output.resolve(), json_output.resolve()
+    return resolved_outputs[0], resolved_outputs[1]
 
 
 def validate_output_records(records: Iterable[Dict[str, str]]) -> List[Dict[str, str]]:

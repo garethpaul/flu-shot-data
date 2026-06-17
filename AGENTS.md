@@ -63,6 +63,8 @@ CDC weekly influenza summary table into CSV and JSON records.
   is opened or truncated.
 - Preserve validation of both output parents as existing directories before
   either file is opened or truncated.
+- Preserve regular-file validation for existing resolved output targets before
+  creating stages, backups, or replacing destinations.
 - Preserve exact-header, string-value, and strict UTF-8 output record
   validation before either file is opened or truncated.
 - Preserve paired output rollback and invocation-owned artifact cleanup for

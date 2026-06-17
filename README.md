@@ -59,6 +59,8 @@ CSV and JSON destinations must identify distinct filesystem targets; direct,
 symlink-resolved, and existing same-file aliases are rejected before writes.
 Each output parent must be an existing directory before either file is opened,
 so an invalid second destination cannot truncate the first output.
+Each existing resolved destination must be a regular file; directories, FIFOs,
+devices, sockets, and other special targets are rejected before staging.
 Every output record must use the exact documented headers, string values, and
 valid UTF-8 text before either destination is opened or truncated.
 CSV and JSON are staged completely before either destination is replaced. If

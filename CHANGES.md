@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-17
+
+- Rejected existing directory and special-file output targets before staging
+  or publication can mutate them.
+
 ## 2026-06-16
 
 - Preserved primary output-staging errors when temporary-file cleanup also

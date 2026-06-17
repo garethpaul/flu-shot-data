@@ -61,6 +61,8 @@ Helpful reports include:
   either destination is opened or truncated.
 - CSV and JSON output parents must be existing directories before either
   destination is opened or truncated.
+- Existing resolved output destinations must be regular files; directories and
+  special files fail before stages or backups are created.
 - Output records must match the documented header set and contain only valid
   UTF-8 strings before either destination is opened or truncated.
 - Paired CSV and JSON outputs must preserve their prior generation across

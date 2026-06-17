@@ -37,6 +37,7 @@ OUTPUT_RECORD_PLAN="$ROOT_DIR/docs/plans/2026-06-15-output-record-preflight.md"
 PAIRED_OUTPUT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-paired-output-publication.md"
 CLEANUP_ERROR_PLAN="$ROOT_DIR/docs/plans/2026-06-16-output-cleanup-error-preservation.md"
 STAGING_CLEANUP_PLAN="$ROOT_DIR/docs/plans/2026-06-16-staging-cleanup-error-preservation.md"
+OUTPUT_TARGET_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-17-output-target-type-preflight.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -88,6 +89,7 @@ for path in \
   "docs/plans/2026-06-15-paired-output-publication.md" \
   "docs/plans/2026-06-16-output-cleanup-error-preservation.md" \
   "docs/plans/2026-06-16-staging-cleanup-error-preservation.md" \
+  "docs/plans/2026-06-17-output-target-type-preflight.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -1100,4 +1102,54 @@ if any(item not in plan for item in required_plan):
         "actual verification, and the crash-atomicity boundary."
     )
 PY
+"$PYTHON" - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" "$OUTPUT_TARGET_TYPE_PLAN" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text()
+tests = Path(sys.argv[2]).read_text()
+plan = " ".join(Path(sys.argv[3]).read_text().split())
+
+validator = source[source.index("def validate_output_paths("):source.index("def validate_output_records(")]
+required_validator = (
+    "output_mode = resolved_output.stat().st_mode",
+    "except FileNotFoundError:",
+    "if not stat.S_ISREG(output_mode):",
+    'raise ValueError("Each existing output target must be a regular file.")',
+)
+required_tests = (
+    "test_write_outputs_rejects_csv_directory_target_before_staging",
+    "test_write_outputs_rejects_json_directory_target_before_staging",
+    "test_write_outputs_rejects_csv_fifo_target_before_staging",
+    "test_write_outputs_rejects_json_fifo_target_before_staging",
+    'glob(".*.stage-*")',
+    'glob(".*.backup-*")',
+)
+required_plan = (
+    "status: completed",
+    "All 68 offline tests passed",
+    "Repository-root and external-directory `make check` passed",
+    "Eight isolated mutations were rejected",
+    "no live CDC request was made",
+    "does not claim crash, kernel, filesystem, or power-loss atomicity",
+)
+
+if any(item not in validator for item in required_validator):
+    raise SystemExit("Existing output targets must be regular files before staging.")
+if any(item not in tests for item in required_tests):
+    raise SystemExit("Directory and FIFO output-target regressions must remain registered.")
+if any(item not in plan for item in required_plan):
+    raise SystemExit(
+        "Output target type preflight plan must record completed status, "
+        "actual verification, and the crash-atomicity boundary."
+    )
+PY
+if ! grep -Fq 'Each existing resolved destination must be a regular file' "$ROOT_DIR/README.md" || \
+  ! grep -Fq 'Existing resolved output destinations must be regular files' "$ROOT_DIR/SECURITY.md" || \
+  ! grep -Fq 'Reject existing non-regular output targets before staging or publication' "$ROOT_DIR/VISION.md" || \
+  ! grep -Fq 'Rejected existing directory and special-file output targets before staging' "$ROOT_DIR/CHANGES.md" || \
+  ! grep -Fq 'Preserve regular-file validation for existing resolved output targets' "$ROOT_DIR/AGENTS.md"; then
+  printf '%s\n' "Project guidance must preserve the regular-file output target boundary." >&2
+  exit 1
+fi
 printf '%s\n' "flu-shot-data Python baseline checks passed."

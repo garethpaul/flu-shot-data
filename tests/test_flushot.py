@@ -292,6 +292,20 @@ class FluShotParserTests(unittest.TestCase):
             self.assertEqual(b"sentinel", csv_path.read_bytes())
             self.assertEqual(b"parent sentinel", json_parent.read_bytes())
 
+    def test_write_outputs_rejects_csv_directory_target_before_staging(self):
+        self.assert_non_regular_output_rejected("csv", "directory")
+
+    def test_write_outputs_rejects_json_directory_target_before_staging(self):
+        self.assert_non_regular_output_rejected("json", "directory")
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFOs require os.mkfifo")
+    def test_write_outputs_rejects_csv_fifo_target_before_staging(self):
+        self.assert_non_regular_output_rejected("csv", "fifo")
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFOs require os.mkfifo")
+    def test_write_outputs_rejects_json_fifo_target_before_staging(self):
+        self.assert_non_regular_output_rejected("json", "fifo")
+
     def test_write_outputs_rejects_extra_fields_before_truncation(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
         records[0]["UNEXPECTED"] = "value"
@@ -653,6 +667,39 @@ class FluShotParserTests(unittest.TestCase):
 
             self.assertEqual(b"csv sentinel", csv_path.read_bytes())
             self.assertEqual(b"json sentinel", json_path.read_bytes())
+
+    def assert_non_regular_output_rejected(self, target_name, target_type):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "flu.csv"
+            json_path = Path(tmpdir) / "flu.json"
+            target = csv_path if target_name == "csv" else json_path
+            paired = json_path if target_name == "csv" else csv_path
+            paired.write_bytes(b"paired sentinel")
+
+            if target_type == "directory":
+                target.mkdir()
+                marker = target / "marker"
+                marker.write_bytes(b"directory sentinel")
+            else:
+                os.mkfifo(target)
+
+            with self.assertRaisesRegex(ValueError, "regular file"):
+                flushot.write_outputs(
+                    records,
+                    csv_path=csv_path,
+                    json_path=json_path,
+                )
+
+            self.assertEqual(b"paired sentinel", paired.read_bytes())
+            if target_type == "directory":
+                self.assertTrue(target.is_dir())
+                self.assertEqual(b"directory sentinel", marker.read_bytes())
+            else:
+                self.assertTrue(stat.S_ISFIFO(target.stat().st_mode))
+            self.assertEqual([], list(Path(tmpdir).glob(".*.stage-*")))
+            self.assertEqual([], list(Path(tmpdir).glob(".*.backup-*")))
 
     def write_output_sentinels(self, tmpdir):
         csv_path = Path(tmpdir) / "flu.csv"

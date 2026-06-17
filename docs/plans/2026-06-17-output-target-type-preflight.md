@@ -1,7 +1,7 @@
 ---
 title: Output Target Type Preflight
 type: security
-status: planned
+status: completed
 date: 2026-06-17
 ---
 
@@ -94,4 +94,18 @@ actually executed.
 
 ## Verification Results
 
-Implementation and verification are pending.
+Implementation is complete. Existing resolved CSV and JSON destinations now
+must be regular files before staging. Four focused regressions passed for
+directory and FIFO targets in both output positions while preserving the
+rejected object, the paired output, and an artifact-free parent directory.
+
+All 68 offline tests passed, along with in-memory source and test compilation
+and POSIX shell syntax validation. Repository-root and external-directory
+`make check` passed with bytecode writes disabled.
+
+Eight isolated mutations were rejected across the regular-file predicate,
+stable diagnostic, directory and FIFO regressions, artifact assertions,
+maintained guidance, and completed plan status.
+
+The validation was offline and no live CDC request was made. This boundary
+does not claim crash, kernel, filesystem, or power-loss atomicity.
