@@ -16,6 +16,10 @@ import flushot
 FIXTURE = Path(__file__).parent / "fixtures" / "cdc_weekly_summary.html"
 
 
+def same_resolved_path(left, right):
+    return Path(left).resolve() == Path(right).resolve()
+
+
 class FakeResponse:
     def __init__(self, body=b"", url=flushot.CDC_FLU_URL, headers=None, status=200):
         self.body = BytesIO(body)
@@ -386,7 +390,7 @@ class FluShotParserTests(unittest.TestCase):
             real_reserve = flushot.reserve_output_stage
 
             def fail_json_reservation(output):
-                if output == json_path:
+                if same_resolved_path(output, json_path):
                     raise OSError("reservation failure")
                 return real_reserve(output)
 
@@ -447,7 +451,10 @@ class FluShotParserTests(unittest.TestCase):
             real_replace = os.replace
 
             def fail_json_publication(source, destination):
-                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                if ".stage-" in Path(source).name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
                 return real_replace(source, destination)
 
@@ -461,6 +468,39 @@ class FluShotParserTests(unittest.TestCase):
 
             self.assert_output_sentinels_and_no_artifacts(tmpdir, csv_path, json_path)
 
+    def test_write_outputs_fault_injection_matches_resolved_alias_destination(self):
+        records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            real_directory = Path(tmpdir) / "real"
+            real_directory.mkdir()
+            alias_directory = Path(tmpdir) / "alias"
+            alias_directory.symlink_to(real_directory, target_is_directory=True)
+            csv_path, json_path = self.write_output_sentinels(alias_directory)
+            real_replace = os.replace
+
+            def fail_json_publication(source, destination):
+                if ".stage-" in Path(source).name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
+                    raise OSError("publication failure")
+                return real_replace(source, destination)
+
+            with patch("flushot.os.replace", side_effect=fail_json_publication):
+                with self.assertRaisesRegex(OSError, "publication failure"):
+                    flushot.write_outputs(
+                        records,
+                        csv_path=csv_path,
+                        json_path=json_path,
+                    )
+
+            self.assert_output_sentinels_and_no_artifacts(
+                real_directory,
+                csv_path.resolve(),
+                json_path.resolve(),
+            )
+
     def test_write_outputs_rolls_back_pair_when_second_backup_fails(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 
@@ -469,7 +509,9 @@ class FluShotParserTests(unittest.TestCase):
             real_replace = os.replace
 
             def fail_json_backup(source, destination):
-                if Path(source) == json_path and ".backup-" in Path(destination).name:
+                if same_resolved_path(source, json_path) and ".backup-" in Path(
+                    destination
+                ).name:
                     raise OSError("backup failure")
                 return real_replace(source, destination)
 
@@ -492,7 +534,10 @@ class FluShotParserTests(unittest.TestCase):
             real_replace = os.replace
 
             def fail_json_publication(source, destination):
-                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                if ".stage-" in Path(source).name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
                 return real_replace(source, destination)
 
@@ -515,10 +560,15 @@ class FluShotParserTests(unittest.TestCase):
 
             def fail_publication_and_csv_restore(source, destination):
                 source_path = Path(source)
-                destination_path = Path(destination)
-                if ".stage-" in source_path.name and destination_path == json_path:
+                if ".stage-" in source_path.name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
-                if ".backup-" in source_path.name and destination_path == csv_path:
+                if ".backup-" in source_path.name and same_resolved_path(
+                    destination,
+                    csv_path,
+                ):
                     raise OSError("rollback failure")
                 return real_replace(source, destination)
 
@@ -549,7 +599,10 @@ class FluShotParserTests(unittest.TestCase):
             cleanup_attempts = []
 
             def fail_json_publication(source, destination):
-                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                if ".stage-" in Path(source).name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
                 return real_replace(source, destination)
 
@@ -590,10 +643,15 @@ class FluShotParserTests(unittest.TestCase):
 
             def fail_publication_and_csv_restore(source, destination):
                 source_path = Path(source)
-                destination_path = Path(destination)
-                if ".stage-" in source_path.name and destination_path == json_path:
+                if ".stage-" in source_path.name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
-                if ".backup-" in source_path.name and destination_path == csv_path:
+                if ".backup-" in source_path.name and same_resolved_path(
+                    destination,
+                    csv_path,
+                ):
                     raise OSError("rollback failure")
                 return real_replace(source, destination)
 
