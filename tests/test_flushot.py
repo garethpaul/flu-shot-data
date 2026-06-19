@@ -533,7 +533,10 @@ class FluShotParserTests(unittest.TestCase):
             cleanup_attempts = []
 
             def fail_json_publication(source, destination):
-                if ".stage-" in Path(source).name and Path(destination) == json_path:
+                if ".stage-" in Path(source).name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
                 return real_replace(source, destination)
 
@@ -574,10 +577,15 @@ class FluShotParserTests(unittest.TestCase):
 
             def fail_publication_and_csv_restore(source, destination):
                 source_path = Path(source)
-                destination_path = Path(destination)
-                if ".stage-" in source_path.name and destination_path == json_path:
+                if ".stage-" in source_path.name and same_resolved_path(
+                    destination,
+                    json_path,
+                ):
                     raise OSError("publication failure")
-                if ".backup-" in source_path.name and destination_path == csv_path:
+                if ".backup-" in source_path.name and same_resolved_path(
+                    destination,
+                    csv_path,
+                ):
                     raise OSError("rollback failure")
                 return real_replace(source, destination)
 
