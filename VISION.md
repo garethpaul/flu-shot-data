@@ -91,6 +91,8 @@ Next priorities:
 - Complete issue #24 before publishing current generated data
 - Implement source-specific bounded JSON/CSV transport and minimized official
   fixtures before changing the default command
+- Keep the completed source-specific FluView transport stage separate from
+  schema decoding and publication so the historical default remains unchanged
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers

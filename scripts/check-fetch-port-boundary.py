@@ -37,12 +37,16 @@ test_contracts = (
     '"https://www.cdc.gov:not-a-port/flu/weekly/"',
     '"https://www.cdc.gov:65536/flu/weekly/"',
     "def test_fetch_html_rejects_explicit_port_before_building_opener",
-    "build_opener.assert_not_called()",
     "def test_redirect_handler_revalidates_targets",
 )
 for contract in test_contracts:
     if tests.count(contract) != 1:
         raise SystemExit(f"Fetch port regressions must contain one {contract!r}.")
+fetch_test = tests.split(
+    "def test_fetch_html_rejects_explicit_port_before_building_opener", 1
+)[1].split("\n    def ", 1)[0]
+if fetch_test.count("build_opener.assert_not_called()") != 1:
+    raise SystemExit("Fetch port regression must prove the opener is not built.")
 for fixture in (
     '"https://www.cdc.gov:443/flu/weekly/"',
     '"https://www.cdc.gov:8443/flu/weekly/"',

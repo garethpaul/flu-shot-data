@@ -38,6 +38,8 @@ PAIRED_OUTPUT_PLAN="$ROOT_DIR/docs/plans/2026-06-15-paired-output-publication.md
 CLEANUP_ERROR_PLAN="$ROOT_DIR/docs/plans/2026-06-16-output-cleanup-error-preservation.md"
 STAGING_CLEANUP_PLAN="$ROOT_DIR/docs/plans/2026-06-16-staging-cleanup-error-preservation.md"
 OUTPUT_TARGET_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-17-output-target-type-preflight.md"
+FLUVIEW_TRANSPORT_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-source-transports-design.md"
+FLUVIEW_TRANSPORT_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-source-transports.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -90,6 +92,8 @@ for path in \
   "docs/plans/2026-06-16-output-cleanup-error-preservation.md" \
   "docs/plans/2026-06-16-staging-cleanup-error-preservation.md" \
   "docs/plans/2026-06-17-output-target-type-preflight.md" \
+  "docs/plans/2026-06-26-fluview-source-transports-design.md" \
+  "docs/plans/2026-06-26-fluview-source-transports.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -150,6 +154,71 @@ if 'csv_stage.open("w"' not in stage_writer or 'json_stage.open("w"' not in stag
     raise SystemExit("Complete output staging must write only invocation-owned stage paths.")
 if 'csv_output.open("w"' in source or 'json_output.open("w"' in source:
     raise SystemExit("Validated output destinations must not be opened directly for writing.")
+PY
+
+"$PYTHON" - \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$FLUVIEW_TRANSPORT_DESIGN" \
+  "$FLUVIEW_TRANSPORT_PLAN" \
+  "$ROOT_DIR/AGENTS.md" \
+  "$ROOT_DIR/README.md" \
+  "$ROOT_DIR/SECURITY.md" \
+  "$ROOT_DIR/VISION.md" \
+  "$ROOT_DIR/CHANGES.md" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+tests = Path(sys.argv[2]).read_text(encoding="utf-8")
+design = Path(sys.argv[3]).read_text(encoding="utf-8")
+plan = Path(sys.argv[4]).read_text(encoding="utf-8")
+docs = [Path(path).read_text(encoding="utf-8") for path in sys.argv[5:]]
+
+source_contracts = (
+    'CDC_FLU_URL = "https://www.cdc.gov/flu/weekly/"',
+    '"https://gis.cdc.gov/grasp/flu2/GetPhase02InitApp?appVersion=Public"',
+    '"https://gis.cdc.gov/grasp/flu2/PostPhase02WHOGetData"',
+    '"https://gis.cdc.gov/grasp/flu2/PostPhase02LineChartDataDownload"',
+    '"https://gis.cdc.gov/grasp/flu4/GetPhase04InitApp?appVersion=Public"',
+    "def fetch_fluview_phase2_init(",
+    "def fetch_fluview_phase2_region_data(",
+    "def fetch_fluview_phase2_line_csv(",
+    "def fetch_fluview_phase4_init(",
+    "def _validate_fluview_content_type(",
+    "def _validate_positive_season_id(",
+    "def _validate_hhs_region_id(",
+    'raise ValueError("CDC response final URL must match the exact requested URL.")',
+    '"application/json"',
+    '"application/octet-stream"',
+    '"RegionTypeID": 1',
+    '"RegionTypeId": 1',
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("FluView transports must preserve exact reviewed source boundaries.")
+
+test_contracts = (
+    "test_fetch_fluview_phase2_init_uses_exact_get_and_returns_json_object",
+    "test_fetch_fluview_phase4_init_uses_exact_get_and_returns_json_object",
+    "test_fetch_fluview_phase2_region_data_uses_reviewed_post_body",
+    "test_fetch_fluview_phase2_line_csv_uses_reviewed_post_body",
+    "test_fluview_post_transports_reject_invalid_identifiers_before_network",
+    "test_fluview_json_transport_requires_exact_final_url_before_body",
+    "test_fluview_json_transport_rejects_unreviewed_media_before_body",
+    "test_fluview_csv_transport_requires_octet_stream_before_body",
+    "test_fluview_json_transport_rejects_malformed_or_non_object_json",
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("FluView source transport regressions must remain complete.")
+
+if "Status: Completed" not in design or "Status: Completed" not in plan:
+    raise SystemExit("FluView transport design and implementation plans must be completed.")
+if "make check" not in plan:
+    raise SystemExit("FluView transport plan must record make check verification.")
+
+guidance = "source-specific FluView transport"
+if any(guidance not in document for document in docs):
+    raise SystemExit("Project guidance must preserve source-specific FluView transport policy.")
 PY
 
 "$PYTHON" "$RESPONSE_STATUS_CHECK" \
