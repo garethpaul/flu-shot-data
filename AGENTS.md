@@ -54,6 +54,10 @@ CDC weekly influenza summary table into CSV and JSON records.
 - Use validated FluView phase 2 metadata before source joins: reject malformed
   collections, duplicate IDs, invalid weeks/dates, incomplete HHS regions, and
   unknown virus-to-lab relationships.
+- Treat only validated FluView phase 2 regional data as source authority:
+  require the exact declared positional structure, both lab types, all HHS and
+  national regions, complete virus sets, ordered counts, bounded metrics, and
+  binary flags before defining joins or publication fields.
 - Reject embedded credentials in live fetch URLs before opening network requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source migration changes the provenance boundary.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.

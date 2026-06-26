@@ -42,6 +42,8 @@ FLUVIEW_TRANSPORT_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-source-transpo
 FLUVIEW_TRANSPORT_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-source-transports.md"
 FLUVIEW_METADATA_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-metadata-design.md"
 FLUVIEW_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-metadata.md"
+FLUVIEW_REGIONAL_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-regional-decoder-design.md"
+FLUVIEW_REGIONAL_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-regional-decoder.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -99,6 +101,9 @@ for path in \
   "docs/plans/2026-06-26-fluview-phase2-metadata-design.md" \
   "docs/plans/2026-06-26-fluview-phase2-metadata.md" \
   "tests/fixtures/fluview_phase2_init_2026-06-26.json" \
+  "docs/plans/2026-06-26-fluview-phase2-regional-decoder-design.md" \
+  "docs/plans/2026-06-26-fluview-phase2-regional-decoder.md" \
+  "tests/fixtures/fluview_phase2_region_2026-06-26.json" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -243,6 +248,119 @@ if "make check" not in plan:
 guidance = "validated FluView phase 2 metadata"
 if any(guidance not in document for document in docs):
     raise SystemExit("Project guidance must preserve validated FluView phase 2 metadata policy.")
+PY
+
+"$PYTHON" - \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$ROOT_DIR/tests/fixtures/fluview_phase2_region_2026-06-26.json" \
+  "$FLUVIEW_REGIONAL_DESIGN" \
+  "$FLUVIEW_REGIONAL_PLAN" \
+  "$ROOT_DIR/AGENTS.md" \
+  "$ROOT_DIR/README.md" \
+  "$ROOT_DIR/SECURITY.md" \
+  "$ROOT_DIR/VISION.md" \
+  "$ROOT_DIR/CHANGES.md" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+tests = Path(sys.argv[2]).read_text(encoding="utf-8")
+fixture = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+design = Path(sys.argv[4]).read_text(encoding="utf-8")
+plan = Path(sys.argv[5]).read_text(encoding="utf-8")
+docs = [Path(path).read_text(encoding="utf-8") for path in sys.argv[6:]]
+
+expected_provenance = {
+    "source_url": "https://gis.cdc.gov/grasp/flu2/PostPhase02WHOGetData",
+    "request_body": {
+        "AppVersion": "Public",
+        "SeasonID": 65,
+        "RegionTypeID": 1,
+        "RegionID": 1,
+    },
+    "retrieved_at": "2026-06-26T21:58:17Z",
+    "full_response_bytes": 1166773,
+    "full_response_sha256": "519d0af02375ba80319b1981ba45fd3659d71a51e393d32d68583e0eba31b994",
+    "request_method": "POST",
+    "response_content_type": "application/json; charset=utf-8",
+    "minimization": (
+        "Retains two official weeks and every lab, HHS region, national region, "
+        "virus category, positional metric, and declared-structure field consumed "
+        "by parse_fluview_phase2_region_data."
+    ),
+}
+if fixture.get("provenance") != expected_provenance:
+    raise SystemExit("FluView phase 2 regional fixture must preserve exact provenance.")
+
+response = fixture.get("response")
+summary = (
+    response.get("WHO_Virus_Counts_Summary_Cumulative")
+    if isinstance(response, dict)
+    else None
+)
+if (
+    not isinstance(response, dict)
+    or len(response.get("mmwr", [])) != 2
+    or len(response.get("viruslist", [])) != 12
+    or not isinstance(summary, dict)
+    or len(summary.get("data", [])) != 2
+):
+    raise SystemExit("FluView phase 2 regional fixture must remain minimized and complete.")
+
+for week in summary["data"]:
+    if len(week) != 2 or {lab[0] for lab in week[1]} != {1, 2}:
+        raise SystemExit("Regional fixture weeks must preserve both lab types.")
+    for lab in week[1]:
+        region_types = {
+            region_type[0]: region_type[1]
+            for segment in lab[1:]
+            for region_type in segment
+        }
+        if set(region_types) != {1, 3}:
+            raise SystemExit("Regional fixture labs must preserve regional and national data.")
+        if {region[0] for region in region_types[1]} != set(range(1, 11)):
+            raise SystemExit("Regional fixture must preserve HHS regions 1 through 10.")
+        if {region[0] for region in region_types[3]} != {0}:
+            raise SystemExit("Regional fixture must preserve national region zero.")
+
+source_contracts = (
+    "def _fluview_phase2_region_data_structure(",
+    "def parse_fluview_phase2_region_data(",
+    "def _parse_fluview_region_record(",
+    "def _require_nonnegative_integer(",
+    "def _require_percentage(",
+    "def _require_binary_flag(",
+    'if summary.get("data_structure") != _fluview_phase2_region_data_structure():',
+    'if set(region_types) != {1, 3}:',
+    'if set(region_types[1]) != set(range(1, 11)):',
+    'if set(region_types[3]) != {0}:',
+    'if not cumulative >= three_weeks >= current:',
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("FluView phase 2 regional decoder contracts are incomplete.")
+
+test_contracts = (
+    "test_fluview_phase2_region_fixture_records_exact_source_provenance",
+    "test_parse_fluview_phase2_region_data_normalizes_declared_structure",
+    "test_parse_fluview_phase2_region_data_ignores_collection_order",
+    "test_parse_fluview_phase2_region_data_rejects_structure_drift",
+    "test_parse_fluview_phase2_region_data_rejects_catalog_disagreement",
+    "test_parse_fluview_phase2_region_data_rejects_incomplete_regions_and_viruses",
+    "test_parse_fluview_phase2_region_data_rejects_invalid_counts_metrics_and_flags",
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("FluView phase 2 regional decoder regressions must remain complete.")
+
+if "Status: Completed" not in design or "Status: Completed" not in plan:
+    raise SystemExit("FluView regional decoder plans must be completed.")
+if "make check" not in plan:
+    raise SystemExit("FluView regional decoder plan must record make check verification.")
+
+guidance = "validated FluView phase 2 regional data"
+if any(guidance not in document for document in docs):
+    raise SystemExit("Project guidance must preserve validated regional data policy.")
 PY
 
 "$PYTHON" - \

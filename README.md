@@ -74,6 +74,14 @@ order-independent and rejects duplicate identifiers, invalid dates and
 week/year metadata, incomplete region coverage, empty labels, and unknown lab
 references before later joins can consume them.
 
+A second minimized official fixture records the phase 2 regional response's
+exact request and full-response provenance. `parse_fluview_phase2_region_data()`
+validates the endpoint's declared positional structure for every returned week.
+The result is validated FluView phase 2 regional data that preserves public
+health and clinical labs, HHS regions, national records, virus-count windows,
+ILI metrics, and source flags separately. It does not select or publish the
+future `v2` schema.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:

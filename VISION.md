@@ -95,6 +95,9 @@ Next priorities:
   schema decoding and publication so the historical default remains unchanged
 - Build later joins only from validated FluView phase 2 metadata with recorded
   official fixture provenance
+- Define `v2` records only from validated FluView phase 2 regional data that
+  preserves separate lab, HHS-region, national, virus-count, ILI, and flag
+  provenance
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers
