@@ -1,5 +1,22 @@
 # Changes
 
+## 2026-06-26 15:22 PDT - P1 - Decode phase 4 pediatric mortality
+
+- Recorded a 41,171-byte current-season fixture with exact provenance for the
+  1,017,561-byte official response.
+- Added strict decoding of 38 published national weeks, four virus categories,
+  previously/newly reported counts, and ten separate HHS season totals.
+- Rejected malformed catalogs/weeks, incomplete groups, count disagreement,
+  nonzero future placeholders, invalid regions/rates, and unequal totals.
+- Live decoding and all 104 tests pass; the current season total is 184 deaths.
+- The normalized result is validated FluView phase 4 mortality.
+- National weekly deaths remain separate from HHS season totals; no regional
+  weekly mortality is fabricated.
+
+### Next action
+
+- Define the versioned `v2` schema and explicit cross-source joins.
+
 ## 2026-06-26 15:16 PDT - P1 - Decode FluView ILINet CSV data
 
 ### Summary

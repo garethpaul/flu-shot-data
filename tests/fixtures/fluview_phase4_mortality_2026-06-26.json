@@ -1,0 +1,2337 @@
+{
+  "provenance": {
+    "source_url": "https://gis.cdc.gov/grasp/flu4/GetPhase04InitApp?appVersion=Public",
+    "request_method": "GET",
+    "retrieved_at": "2026-06-26T22:20:01Z",
+    "response_content_type": "application/json; charset=utf-8",
+    "full_response_bytes": 1017561,
+    "full_response_sha256": "81d560217254765f707d65b949272c56c305bcd65d13fe001f172789a46543fe",
+    "minimization": "Retains only current-season fields consumed by parse_fluview_phase4_mortality."
+  },
+  "response": {
+    "seasons": [
+      {
+        "seasonid": 65,
+        "label": "2025-26",
+        "map": 1,
+        "weekly": 1
+      }
+    ],
+    "weeks": [
+      {
+        "mmwrid": 3327,
+        "weeknumber": 40,
+        "label": "2025-40",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3328,
+        "weeknumber": 41,
+        "label": "2025-41",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3329,
+        "weeknumber": 42,
+        "label": "2025-42",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3330,
+        "weeknumber": 43,
+        "label": "2025-43",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3331,
+        "weeknumber": 44,
+        "label": "2025-44",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3332,
+        "weeknumber": 45,
+        "label": "2025-45",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3333,
+        "weeknumber": 46,
+        "label": "2025-46",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3334,
+        "weeknumber": 47,
+        "label": "2025-47",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3335,
+        "weeknumber": 48,
+        "label": "2025-48",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3336,
+        "weeknumber": 49,
+        "label": "2025-49",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3337,
+        "weeknumber": 50,
+        "label": "2025-50",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3338,
+        "weeknumber": 51,
+        "label": "2025-51",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3339,
+        "weeknumber": 52,
+        "label": "2025-52",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3340,
+        "weeknumber": 53,
+        "label": "2025-53",
+        "year": 2025,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3341,
+        "weeknumber": 1,
+        "label": "2026-01",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3342,
+        "weeknumber": 2,
+        "label": "2026-02",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3343,
+        "weeknumber": 3,
+        "label": "2026-03",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3344,
+        "weeknumber": 4,
+        "label": "2026-04",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3345,
+        "weeknumber": 5,
+        "label": "2026-05",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3346,
+        "weeknumber": 6,
+        "label": "2026-06",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3347,
+        "weeknumber": 7,
+        "label": "2026-07",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3348,
+        "weeknumber": 8,
+        "label": "2026-08",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3349,
+        "weeknumber": 9,
+        "label": "2026-09",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3350,
+        "weeknumber": 10,
+        "label": "2026-10",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3351,
+        "weeknumber": 11,
+        "label": "2026-11",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3352,
+        "weeknumber": 12,
+        "label": "2026-12",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3353,
+        "weeknumber": 13,
+        "label": "2026-13",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3354,
+        "weeknumber": 14,
+        "label": "2026-14",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3355,
+        "weeknumber": 15,
+        "label": "2026-15",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3356,
+        "weeknumber": 16,
+        "label": "2026-16",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3357,
+        "weeknumber": 17,
+        "label": "2026-17",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3358,
+        "weeknumber": 18,
+        "label": "2026-18",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3359,
+        "weeknumber": 19,
+        "label": "2026-19",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3360,
+        "weeknumber": 20,
+        "label": "2026-20",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3361,
+        "weeknumber": 21,
+        "label": "2026-21",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3362,
+        "weeknumber": 22,
+        "label": "2026-22",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3363,
+        "weeknumber": 23,
+        "label": "2026-23",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3364,
+        "weeknumber": 24,
+        "label": "2026-24",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3365,
+        "weeknumber": 25,
+        "label": "2026-25",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3366,
+        "weeknumber": 26,
+        "label": "2026-26",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3367,
+        "weeknumber": 27,
+        "label": "2026-27",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3368,
+        "weeknumber": 28,
+        "label": "2026-28",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3369,
+        "weeknumber": 29,
+        "label": "2026-29",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3370,
+        "weeknumber": 30,
+        "label": "2026-30",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3371,
+        "weeknumber": 31,
+        "label": "2026-31",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3372,
+        "weeknumber": 32,
+        "label": "2026-32",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3373,
+        "weeknumber": 33,
+        "label": "2026-33",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3374,
+        "weeknumber": 34,
+        "label": "2026-34",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3375,
+        "weeknumber": 35,
+        "label": "2026-35",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3376,
+        "weeknumber": 36,
+        "label": "2026-36",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3377,
+        "weeknumber": 37,
+        "label": "2026-37",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3378,
+        "weeknumber": 38,
+        "label": "2026-38",
+        "year": 2026,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3379,
+        "weeknumber": 39,
+        "label": "2026-39",
+        "year": 2026,
+        "seasonid": 65
+      }
+    ],
+    "ped_flu_virus": [
+      {
+        "id": 1,
+        "label": "A                                       "
+      },
+      {
+        "id": 2,
+        "label": "B                                       "
+      },
+      {
+        "id": 3,
+        "label": "A/B Not Distinguished                   "
+      },
+      {
+        "id": 4,
+        "label": "A and B                                 "
+      }
+    ],
+    "ped_flu_reported": [
+      {
+        "cwk": 24,
+        "cwk_date": "2026-06-20"
+      }
+    ],
+    "ped_flu_weekly": [
+      {
+        "mmwrid": 3327,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3327,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3327,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3327,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3327,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3328,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3328,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3328,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3328,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3328,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3329,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3329,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3329,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3329,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3329,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3330,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3330,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3330,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3330,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3330,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3331,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3331,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3331,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3331,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3331,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3332,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3332,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3332,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3332,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3332,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3333,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3333,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3333,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3333,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3333,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3334,
+        "virusid": 0,
+        "pwk": 3,
+        "cwk": 0,
+        "allwks": 3
+      },
+      {
+        "mmwrid": 3334,
+        "virusid": 1,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3334,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3334,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3334,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3335,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3335,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3335,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3335,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3335,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3336,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3336,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3336,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3336,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3336,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3337,
+        "virusid": 0,
+        "pwk": 4,
+        "cwk": 0,
+        "allwks": 4
+      },
+      {
+        "mmwrid": 3337,
+        "virusid": 1,
+        "pwk": 4,
+        "cwk": 0,
+        "allwks": 4
+      },
+      {
+        "mmwrid": 3337,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3337,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3337,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3338,
+        "virusid": 0,
+        "pwk": 16,
+        "cwk": 0,
+        "allwks": 16
+      },
+      {
+        "mmwrid": 3338,
+        "virusid": 1,
+        "pwk": 14,
+        "cwk": 0,
+        "allwks": 14
+      },
+      {
+        "mmwrid": 3338,
+        "virusid": 2,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3338,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3338,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3339,
+        "virusid": 0,
+        "pwk": 23,
+        "cwk": 0,
+        "allwks": 23
+      },
+      {
+        "mmwrid": 3339,
+        "virusid": 1,
+        "pwk": 21,
+        "cwk": 0,
+        "allwks": 21
+      },
+      {
+        "mmwrid": 3339,
+        "virusid": 2,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3339,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3339,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3340,
+        "virusid": 0,
+        "pwk": 20,
+        "cwk": 0,
+        "allwks": 20
+      },
+      {
+        "mmwrid": 3340,
+        "virusid": 1,
+        "pwk": 19,
+        "cwk": 0,
+        "allwks": 19
+      },
+      {
+        "mmwrid": 3340,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3340,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3340,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3341,
+        "virusid": 0,
+        "pwk": 15,
+        "cwk": 0,
+        "allwks": 15
+      },
+      {
+        "mmwrid": 3341,
+        "virusid": 1,
+        "pwk": 13,
+        "cwk": 0,
+        "allwks": 13
+      },
+      {
+        "mmwrid": 3341,
+        "virusid": 2,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3341,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3341,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3342,
+        "virusid": 0,
+        "pwk": 10,
+        "cwk": 1,
+        "allwks": 11
+      },
+      {
+        "mmwrid": 3342,
+        "virusid": 1,
+        "pwk": 9,
+        "cwk": 1,
+        "allwks": 10
+      },
+      {
+        "mmwrid": 3342,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3342,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3342,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3343,
+        "virusid": 0,
+        "pwk": 8,
+        "cwk": 0,
+        "allwks": 8
+      },
+      {
+        "mmwrid": 3343,
+        "virusid": 1,
+        "pwk": 7,
+        "cwk": 0,
+        "allwks": 7
+      },
+      {
+        "mmwrid": 3343,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3343,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3343,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3344,
+        "virusid": 0,
+        "pwk": 11,
+        "cwk": 0,
+        "allwks": 11
+      },
+      {
+        "mmwrid": 3344,
+        "virusid": 1,
+        "pwk": 8,
+        "cwk": 0,
+        "allwks": 8
+      },
+      {
+        "mmwrid": 3344,
+        "virusid": 2,
+        "pwk": 3,
+        "cwk": 0,
+        "allwks": 3
+      },
+      {
+        "mmwrid": 3344,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3344,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3345,
+        "virusid": 0,
+        "pwk": 11,
+        "cwk": 0,
+        "allwks": 11
+      },
+      {
+        "mmwrid": 3345,
+        "virusid": 1,
+        "pwk": 8,
+        "cwk": 0,
+        "allwks": 8
+      },
+      {
+        "mmwrid": 3345,
+        "virusid": 2,
+        "pwk": 3,
+        "cwk": 0,
+        "allwks": 3
+      },
+      {
+        "mmwrid": 3345,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3345,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3346,
+        "virusid": 0,
+        "pwk": 3,
+        "cwk": 0,
+        "allwks": 3
+      },
+      {
+        "mmwrid": 3346,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3346,
+        "virusid": 2,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3346,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3346,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3347,
+        "virusid": 0,
+        "pwk": 10,
+        "cwk": 0,
+        "allwks": 10
+      },
+      {
+        "mmwrid": 3347,
+        "virusid": 1,
+        "pwk": 4,
+        "cwk": 0,
+        "allwks": 4
+      },
+      {
+        "mmwrid": 3347,
+        "virusid": 2,
+        "pwk": 6,
+        "cwk": 0,
+        "allwks": 6
+      },
+      {
+        "mmwrid": 3347,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3347,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3348,
+        "virusid": 0,
+        "pwk": 10,
+        "cwk": 0,
+        "allwks": 10
+      },
+      {
+        "mmwrid": 3348,
+        "virusid": 1,
+        "pwk": 4,
+        "cwk": 0,
+        "allwks": 4
+      },
+      {
+        "mmwrid": 3348,
+        "virusid": 2,
+        "pwk": 6,
+        "cwk": 0,
+        "allwks": 6
+      },
+      {
+        "mmwrid": 3348,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3348,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3349,
+        "virusid": 0,
+        "pwk": 9,
+        "cwk": 0,
+        "allwks": 9
+      },
+      {
+        "mmwrid": 3349,
+        "virusid": 1,
+        "pwk": 5,
+        "cwk": 0,
+        "allwks": 5
+      },
+      {
+        "mmwrid": 3349,
+        "virusid": 2,
+        "pwk": 4,
+        "cwk": 0,
+        "allwks": 4
+      },
+      {
+        "mmwrid": 3349,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3349,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3350,
+        "virusid": 0,
+        "pwk": 6,
+        "cwk": 0,
+        "allwks": 6
+      },
+      {
+        "mmwrid": 3350,
+        "virusid": 1,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3350,
+        "virusid": 2,
+        "pwk": 4,
+        "cwk": 0,
+        "allwks": 4
+      },
+      {
+        "mmwrid": 3350,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3350,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3351,
+        "virusid": 0,
+        "pwk": 6,
+        "cwk": 0,
+        "allwks": 6
+      },
+      {
+        "mmwrid": 3351,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3351,
+        "virusid": 2,
+        "pwk": 5,
+        "cwk": 0,
+        "allwks": 5
+      },
+      {
+        "mmwrid": 3351,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3351,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3352,
+        "virusid": 0,
+        "pwk": 3,
+        "cwk": 0,
+        "allwks": 3
+      },
+      {
+        "mmwrid": 3352,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3352,
+        "virusid": 2,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3352,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3352,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3353,
+        "virusid": 0,
+        "pwk": 3,
+        "cwk": 0,
+        "allwks": 3
+      },
+      {
+        "mmwrid": 3353,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3353,
+        "virusid": 2,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3353,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3353,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3354,
+        "virusid": 0,
+        "pwk": 2,
+        "cwk": 0,
+        "allwks": 2
+      },
+      {
+        "mmwrid": 3354,
+        "virusid": 1,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3354,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3354,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3354,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3355,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3355,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3355,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3355,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3355,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3356,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3356,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3356,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3356,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3356,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3357,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3357,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3357,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3357,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3357,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3358,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3358,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3358,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3358,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3358,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3359,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3359,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3359,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3359,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3359,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3360,
+        "virusid": 0,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3360,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3360,
+        "virusid": 2,
+        "pwk": 1,
+        "cwk": 0,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3360,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3360,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3361,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 1,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3361,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3361,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 1,
+        "allwks": 1
+      },
+      {
+        "mmwrid": 3361,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3361,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3362,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3362,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3362,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3362,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3362,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3363,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3363,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3363,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3363,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3363,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3364,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3364,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3364,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3364,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3364,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3365,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3365,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3365,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3365,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3365,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3366,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3366,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3366,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3366,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3366,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3367,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3367,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3367,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3367,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3367,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3368,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3368,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3368,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3368,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3368,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3369,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3369,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3369,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3369,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3369,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3370,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3370,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3370,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3370,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3370,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3371,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3371,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3371,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3371,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3371,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3372,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3372,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3372,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3372,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3372,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3373,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3373,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3373,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3373,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3373,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3374,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3374,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3374,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3374,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3374,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3375,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3375,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3375,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3375,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3375,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3376,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3376,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3376,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3376,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3376,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3377,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3377,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3377,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3377,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3377,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3378,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3378,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3378,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3378,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3378,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3379,
+        "virusid": 0,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3379,
+        "virusid": 1,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3379,
+        "virusid": 2,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3379,
+        "virusid": 3,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      },
+      {
+        "mmwrid": 3379,
+        "virusid": 4,
+        "pwk": 0,
+        "cwk": 0,
+        "allwks": 0
+      }
+    ],
+    "ped_flu_map": [
+      {
+        "seasonid": 65,
+        "hhsid": 1,
+        "c": 12,
+        "rate": 3.8
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 2,
+        "c": 18,
+        "rate": 2.8
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 3,
+        "c": 13,
+        "rate": 1.9
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 4,
+        "c": 38,
+        "rate": 2.7
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 5,
+        "c": 35,
+        "rate": 2.8
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 6,
+        "c": 25,
+        "rate": 2.5
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 7,
+        "c": 14,
+        "rate": 4.2
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 8,
+        "c": 12,
+        "rate": 4.3
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 9,
+        "c": 13,
+        "rate": 1.1
+      },
+      {
+        "seasonid": 65,
+        "hhsid": 10,
+        "c": 4,
+        "rate": 1.3
+      }
+    ]
+  }
+}

@@ -62,6 +62,8 @@ CDC weekly influenza summary table into CSV and JSON records.
   preserve provider semantics, exact title/header fields, yearweek uniqueness,
   reserved-column emptiness, visit-count arithmetic, and percentage precision;
   never alias provider counts to legacy jurisdiction counts.
+- Keep validated FluView phase 4 mortality at its reported grains: national
+  weekly deaths and separate HHS season totals; never fabricate regional weeks.
 - Reject embedded credentials in live fetch URLs before opening network requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source migration changes the provenance boundary.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.

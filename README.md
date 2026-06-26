@@ -89,6 +89,10 @@ visits, total ILI visits, total patients, provider counts, and
 weighted/unweighted ILI. Provider counts remain explicitly distinct from the
 retired `NUM_JURIS` field, and no cross-source join is implied.
 
+`parse_fluview_phase4_mortality()` now produces validated FluView phase 4 mortality
+as national weekly virus counts plus separate HHS season totals. It verifies
+their shared season total and never copies national deaths into regional weeks.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:

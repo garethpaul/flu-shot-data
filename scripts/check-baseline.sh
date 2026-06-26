@@ -46,6 +46,8 @@ FLUVIEW_REGIONAL_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-regional
 FLUVIEW_REGIONAL_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-regional-decoder.md"
 FLUVIEW_ILINET_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-ilinet-csv-decoder-design.md"
 FLUVIEW_ILINET_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-ilinet-csv-decoder.md"
+FLUVIEW_PHASE4_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase4-mortality-decoder-design.md"
+FLUVIEW_PHASE4_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase4-mortality-decoder.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -109,6 +111,9 @@ for path in \
   "docs/plans/2026-06-26-fluview-ilinet-csv-decoder-design.md" \
   "docs/plans/2026-06-26-fluview-ilinet-csv-decoder.md" \
   "tests/fixtures/fluview_phase2_line_region1_2026-06-26.json" \
+  "docs/plans/2026-06-26-fluview-phase4-mortality-decoder-design.md" \
+  "docs/plans/2026-06-26-fluview-phase4-mortality-decoder.md" \
+  "tests/fixtures/fluview_phase4_mortality_2026-06-26.json" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -465,6 +470,22 @@ if "make check" not in plan:
 guidance = "validated FluView ILINet CSV data"
 if any(guidance not in document for document in docs):
     raise SystemExit("Project guidance must preserve validated ILINet CSV policy.")
+PY
+
+"$PYTHON" - "$ROOT_DIR/flushot.py" "$ROOT_DIR/tests/test_flushot.py" "$ROOT_DIR/tests/fixtures/fluview_phase4_mortality_2026-06-26.json" "$FLUVIEW_PHASE4_DESIGN" "$FLUVIEW_PHASE4_PLAN" "$ROOT_DIR/AGENTS.md" "$ROOT_DIR/README.md" "$ROOT_DIR/SECURITY.md" "$ROOT_DIR/VISION.md" "$ROOT_DIR/CHANGES.md" <<'PY'
+import json, sys
+from pathlib import Path
+source=Path(sys.argv[1]).read_text(); tests=Path(sys.argv[2]).read_text(); fixture=json.loads(Path(sys.argv[3]).read_text()); design=Path(sys.argv[4]).read_text(); plan=Path(sys.argv[5]).read_text(); docs=[Path(x).read_text() for x in sys.argv[6:]]
+p=fixture.get("provenance", {})
+if p.get("full_response_bytes") != 1017561 or p.get("full_response_sha256") != "81d560217254765f707d65b949272c56c305bcd65d13fe001f172789a46543fe": raise SystemExit("Phase 4 provenance drift")
+r=fixture.get("response", {})
+if [len(r.get(x, [])) for x in ("seasons","weeks","ped_flu_virus","ped_flu_reported","ped_flu_weekly","ped_flu_map")] != [1,53,4,1,265,10]: raise SystemExit("Phase 4 fixture incomplete")
+for x in ("def parse_fluview_phase4_mortality(", "future placeholder weeks must be zero", "national and HHS season totals must match"):
+ if x not in source: raise SystemExit("Phase 4 decoder contract missing")
+for x in ("test_parse_fluview_phase4_mortality_preserves_national_and_region_grains", "test_parse_fluview_phase4_mortality_rejects_invalid_weekly_counts", "test_parse_fluview_phase4_mortality_rejects_invalid_hhs_totals"):
+ if x not in tests: raise SystemExit("Phase 4 tests missing")
+if "Status: Completed" not in design or "Status: Completed" not in plan: raise SystemExit("Phase 4 plans incomplete")
+if any("validated FluView phase 4 mortality" not in d for d in docs): raise SystemExit("Phase 4 guidance missing")
 PY
 
 "$PYTHON" - \
