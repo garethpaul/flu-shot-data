@@ -1,5 +1,50 @@
 # Changes
 
+## 2026-06-26 15:32 PDT - P1 - Publish FluView v2 explicitly
+
+### Summary
+
+Added explicit FluView v2 publication through a JSON-only `v2` subcommand while
+preserving the no-argument legacy command and its historical CSV/JSON behavior.
+
+### Work completed
+
+- Added `python3 flushot.py v2 --json-path PATH`, defaulting to `flu-v2.json`.
+- Added complete source orchestration across phase 2 metadata/regional data,
+  all ten ILINet regions, phase 4 mortality, the v2 builder, and one writer.
+- Added finite JSON staging, fsync, existing-mode preservation, validated
+  regular-file targets, atomic replacement, and failure cleanup.
+- Added dispatch, orchestration, writer, path, dataset, mode, finite-value, and
+  injected-failure regressions without changing the legacy `run()` function.
+
+### Validation
+
+- RED focused suite — six tests produced the expected missing-interface errors.
+- GREEN full suite — all 116 tests passed.
+- Live CLI smoke — published 380 regional records, 38 national mortality weeks,
+  ten HHS season totals, and 184 season deaths to a temporary JSON file.
+- `make check`, `make lint`, `make test`, `make build`, and absolute-Makefile
+  verification from `/tmp` — passed.
+- Ten isolated writer, runner, CLI, finite-JSON, atomicity, legacy-dispatch,
+  regression, plan, and guidance mutations — all rejected.
+- Python, JSON, and shell syntax, current-tree gitleaks, and `git diff --check`
+  — passed with no findings.
+
+### Bugs / findings
+
+- The nested v2 contract has no truthful flat CSV representation, so the new
+  command is intentionally JSON-only.
+- Single-file atomic replacement preserves prior bytes on pre-publication
+  failures without the paired legacy writer's backup/rollback protocol.
+
+### Blockers
+
+- None for versioned publication.
+
+### Next action
+
+- Complete local/hosted validation and close issue #24 after exact-head merge.
+
 ## 2026-06-26 15:28 PDT - P1 - Build truthful FluView v2 dataset
 
 ### Summary

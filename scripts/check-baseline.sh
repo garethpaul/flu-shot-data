@@ -50,6 +50,8 @@ FLUVIEW_PHASE4_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase4-mortality-
 FLUVIEW_PHASE4_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase4-mortality-decoder.md"
 FLUVIEW_V2_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-v2-dataset-design.md"
 FLUVIEW_V2_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-v2-dataset.md"
+FLUVIEW_V2_PUBLICATION_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-v2-publication-design.md"
+FLUVIEW_V2_PUBLICATION_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-v2-publication.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -119,6 +121,8 @@ for path in \
   "docs/plans/2026-06-26-fluview-v2-dataset-design.md" \
   "docs/plans/2026-06-26-fluview-v2-dataset.md" \
   "tests/fixtures/fluview_phase2_line_all_regions_2026-06-26.json" \
+  "docs/plans/2026-06-26-fluview-v2-publication-design.md" \
+  "docs/plans/2026-06-26-fluview-v2-publication.md" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -578,6 +582,57 @@ if "make check" not in plan:
     raise SystemExit("FluView v2 plan must record make check verification.")
 if any("FluView v2 dataset" not in document for document in docs):
     raise SystemExit("Project guidance must preserve the FluView v2 dataset contract.")
+PY
+
+"$PYTHON" - \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$FLUVIEW_V2_PUBLICATION_DESIGN" \
+  "$FLUVIEW_V2_PUBLICATION_PLAN" \
+  "$ROOT_DIR/AGENTS.md" \
+  "$ROOT_DIR/README.md" \
+  "$ROOT_DIR/SECURITY.md" \
+  "$ROOT_DIR/VISION.md" \
+  "$ROOT_DIR/CHANGES.md" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+tests = Path(sys.argv[2]).read_text(encoding="utf-8")
+design = Path(sys.argv[3]).read_text(encoding="utf-8")
+plan = Path(sys.argv[4]).read_text(encoding="utf-8")
+docs = [Path(path).read_text(encoding="utf-8") for path in sys.argv[5:]]
+
+source_contracts = (
+    "def write_fluview_v2_output(",
+    "def run_fluview_v2(",
+    "def main(argv:",
+    'commands.add_parser("v2")',
+    'v2_parser.add_argument("--json-path", default="flu-v2.json")',
+    "json.dump(dataset, json_file, indent=4, allow_nan=False)",
+    "os.replace(stage, resolved_output)",
+    'return run_fluview_v2(json_path=arguments.json_path)',
+    "return run()",
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("FluView v2 publication contracts are incomplete.")
+
+test_contracts = (
+    "test_main_preserves_legacy_default_and_dispatches_explicit_v2",
+    "test_main_rejects_unknown_command_without_fetching",
+    "test_run_fluview_v2_fetches_builds_and_publishes_all_sources",
+    "test_write_fluview_v2_output_publishes_finite_json_and_preserves_mode",
+    "test_write_fluview_v2_output_rejects_invalid_dataset_and_path",
+    "test_write_fluview_v2_output_preserves_existing_file_on_stage_failure",
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("FluView v2 publication regressions must remain complete.")
+if "Status: Completed" not in design or "Status: Completed" not in plan:
+    raise SystemExit("FluView v2 publication plans must be completed.")
+if "make check" not in plan:
+    raise SystemExit("FluView v2 publication plan must record make check verification.")
+if any("FluView v2 publication" not in document for document in docs):
+    raise SystemExit("Project guidance must preserve FluView v2 publication policy.")
 PY
 
 "$PYTHON" - \

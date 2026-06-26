@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import math
@@ -1776,6 +1777,81 @@ def write_outputs(
     publish_output_pair(((csv_output, csv_stage), (json_output, json_stage)))
 
 
+def write_fluview_v2_output(
+    dataset: dict,
+    json_path: str | Path = "flu-v2.json",
+) -> None:
+    if not isinstance(dataset, dict) or type(dataset.get("schema_version")) is not int:
+        raise ValueError("FluView v2 output must be a versioned object.")
+    if dataset["schema_version"] != 2:
+        raise ValueError("FluView v2 output must use schema version 2.")
+
+    output = Path(json_path)
+    if not output.parent.resolve().is_dir():
+        raise ValueError("The FluView v2 output parent must be an existing directory.")
+    resolved_output = output.resolve()
+    try:
+        output_mode = resolved_output.stat().st_mode
+    except FileNotFoundError:
+        pass
+    else:
+        if not stat.S_ISREG(output_mode):
+            raise ValueError("An existing FluView v2 output target must be a regular file.")
+
+    stage = reserve_output_stage(resolved_output)
+    try:
+        with stage.open("w", encoding="utf-8") as json_file:
+            json.dump(dataset, json_file, indent=4, allow_nan=False)
+            json_file.write("\n")
+            json_file.flush()
+            os.fsync(json_file.fileno())
+        os.replace(stage, resolved_output)
+    except Exception:
+        cleanup_output_paths((stage,))
+        raise
+
+
+def run_fluview_v2(
+    verbose: bool = True,
+    json_path: str | Path = "flu-v2.json",
+) -> dict:
+    if verbose:
+        print("Fetching current CDC FluView data ...")
+
+    metadata = parse_fluview_phase2_metadata(fetch_fluview_phase2_init())
+    regional = parse_fluview_phase2_region_data(
+        fetch_fluview_phase2_region_data(metadata["season_id"], 1),
+        metadata,
+    )
+    ilinet_by_region = {
+        region_id: parse_fluview_phase2_line_csv(
+            fetch_fluview_phase2_line_csv(metadata["season_id"], region_id),
+            metadata["season_id"],
+            region_id,
+        )
+        for region_id in range(1, 11)
+    }
+    mortality = parse_fluview_phase4_mortality(
+        fetch_fluview_phase4_init(),
+        metadata,
+    )
+    dataset = build_fluview_v2_dataset(
+        metadata,
+        regional,
+        ilinet_by_region,
+        mortality,
+    )
+    write_fluview_v2_output(dataset, json_path)
+
+    if verbose:
+        print(
+            f"Wrote {len(dataset['regional_weekly'])} regional records to "
+            f"{json_path}."
+        )
+
+    return dataset
+
+
 def run(
     verbose: bool = True,
     url: str = CDC_FLU_URL,
@@ -1796,5 +1872,17 @@ def run(
     return records
 
 
+def main(argv: list[str] | None = None):
+    parser = argparse.ArgumentParser()
+    commands = parser.add_subparsers(dest="command")
+    v2_parser = commands.add_parser("v2")
+    v2_parser.add_argument("--json-path", default="flu-v2.json")
+    arguments = parser.parse_args(argv)
+
+    if arguments.command == "v2":
+        return run_fluview_v2(json_path=arguments.json_path)
+    return run()
+
+
 if __name__ == "__main__":
-    run()
+    main()

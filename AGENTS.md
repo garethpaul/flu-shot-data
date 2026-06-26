@@ -71,6 +71,9 @@ CDC weekly influenza summary table into CSV and JSON records.
   categories, and preserve national weekly versus HHS season mortality grains.
 - Do not change the legacy default command when extending the FluView v2
   dataset; versioned publication requires a separate reviewed stage.
+- Preserve FluView v2 publication as the explicit `v2` JSON command. Keep the
+  no-argument legacy dispatch unchanged, fetch all reviewed sources, publish
+  only a complete finite dataset, and atomically replace a validated target.
 - Reject embedded credentials in live fetch URLs before opening network requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source migration changes the provenance boundary.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.

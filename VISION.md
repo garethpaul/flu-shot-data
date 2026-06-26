@@ -107,6 +107,9 @@ Next priorities:
   surveillance, separate virus namespaces, and grain-preserving mortality
 - Keep the legacy default unchanged until versioned publication wiring is
   separately designed, tested, and reviewed
+- Preserve FluView v2 publication as an explicit JSON-only `v2` command; do
+  not flatten the nested contract into a misleading CSV or silently redirect
+  the no-argument legacy command
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers
