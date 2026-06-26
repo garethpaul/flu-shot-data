@@ -57,6 +57,9 @@ Helpful reports include:
 - Build the FluView v2 dataset only from validated source models. Fail closed
   on source identity, coverage, yearweek, duplicated ILI, boolean, or mortality
   disagreement; keep laboratory and mortality virus IDs in separate catalogs.
+- Keep FluView v2 publication explicit and JSON-only. Validate the destination,
+  stage and fsync finite JSON beside it, preserve existing file modes, and use
+  one atomic replace so source or serialization failures retain prior bytes.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.

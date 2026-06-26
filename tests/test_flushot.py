@@ -6,7 +6,7 @@ import stat
 import tempfile
 import unittest
 from email.message import Message
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import patch
 from urllib.request import Request
@@ -1726,6 +1726,132 @@ class FluShotParserTests(unittest.TestCase):
             flushot.build_fluview_v2_dataset(
                 metadata, regional, ilinet, mortality
             )
+
+    def test_main_preserves_legacy_default_and_dispatches_explicit_v2(self):
+        legacy_result = [{"legacy": "result"}]
+        v2_result = {"schema_version": 2}
+
+        with patch("flushot.run", return_value=legacy_result) as legacy_run:
+            self.assertEqual(legacy_result, flushot.main([]))
+        legacy_run.assert_called_once_with()
+
+        with patch("flushot.run_fluview_v2", return_value=v2_result) as v2_run:
+            self.assertEqual(
+                v2_result,
+                flushot.main(["v2", "--json-path", "custom.json"]),
+            )
+        v2_run.assert_called_once_with(json_path="custom.json")
+
+    def test_main_rejects_unknown_command_without_fetching(self):
+        with patch("flushot.run") as legacy_run:
+            with patch("sys.stderr", new=StringIO()):
+                with self.assertRaises(SystemExit):
+                    flushot.main(["unknown"])
+
+        legacy_run.assert_not_called()
+
+    def test_run_fluview_v2_fetches_builds_and_publishes_all_sources(self):
+        metadata_payload = {"metadata": "payload"}
+        metadata = {"season_id": 65}
+        regional_payload = {"regional": "payload"}
+        regional = {"regional": "decoded"}
+        mortality_payload = {"mortality": "payload"}
+        mortality = {"mortality": "decoded"}
+        dataset = {"schema_version": 2, "regional_weekly": []}
+        line_payloads = {region_id: f"csv-{region_id}" for region_id in range(1, 11)}
+        line_sources = {
+            region_id: {"region_id": region_id}
+            for region_id in range(1, 11)
+        }
+
+        with patch("flushot.fetch_fluview_phase2_init", return_value=metadata_payload) as fetch_metadata, patch(
+            "flushot.parse_fluview_phase2_metadata", return_value=metadata
+        ) as parse_metadata, patch(
+            "flushot.fetch_fluview_phase2_region_data", return_value=regional_payload
+        ) as fetch_regional, patch(
+            "flushot.parse_fluview_phase2_region_data", return_value=regional
+        ) as parse_regional, patch(
+            "flushot.fetch_fluview_phase2_line_csv",
+            side_effect=lambda season_id, region_id: line_payloads[region_id],
+        ) as fetch_line, patch(
+            "flushot.parse_fluview_phase2_line_csv",
+            side_effect=lambda payload, season_id, region_id: line_sources[region_id],
+        ) as parse_line, patch(
+            "flushot.fetch_fluview_phase4_init", return_value=mortality_payload
+        ) as fetch_mortality, patch(
+            "flushot.parse_fluview_phase4_mortality", return_value=mortality
+        ) as parse_mortality, patch(
+            "flushot.build_fluview_v2_dataset", return_value=dataset
+        ) as build_dataset, patch("flushot.write_fluview_v2_output") as write_output:
+            self.assertEqual(
+                dataset,
+                flushot.run_fluview_v2(verbose=False, json_path="output.json"),
+            )
+
+        fetch_metadata.assert_called_once_with()
+        parse_metadata.assert_called_once_with(metadata_payload)
+        fetch_regional.assert_called_once_with(65, 1)
+        parse_regional.assert_called_once_with(regional_payload, metadata)
+        self.assertEqual(
+            [(65, region_id) for region_id in range(1, 11)],
+            [call.args for call in fetch_line.call_args_list],
+        )
+        self.assertEqual(10, parse_line.call_count)
+        fetch_mortality.assert_called_once_with()
+        parse_mortality.assert_called_once_with(mortality_payload, metadata)
+        build_dataset.assert_called_once_with(metadata, regional, line_sources, mortality)
+        write_output.assert_called_once_with(dataset, "output.json")
+
+    def test_write_fluview_v2_output_publishes_finite_json_and_preserves_mode(self):
+        dataset = {"schema_version": 2, "regional_weekly": []}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "flu-v2.json"
+            output.write_text("old\n", encoding="utf-8")
+            output.chmod(0o640)
+
+            flushot.write_fluview_v2_output(dataset, output)
+
+            self.assertEqual(dataset, json.loads(output.read_text(encoding="utf-8")))
+            self.assertTrue(output.read_text(encoding="utf-8").endswith("\n"))
+            self.assertEqual(0o640, stat.S_IMODE(output.stat().st_mode))
+            self.assertEqual({"flu-v2.json"}, set(os.listdir(tmpdir)))
+
+    def test_write_fluview_v2_output_rejects_invalid_dataset_and_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            invalid_parent = root / "missing" / "flu-v2.json"
+            directory_target = root / "directory"
+            directory_target.mkdir()
+
+            for dataset, path in (
+                ([], root / "list.json"),
+                ({"schema_version": 1}, root / "v1.json"),
+                ({"schema_version": 2, "value": float("nan")}, root / "nan.json"),
+                ({"schema_version": 2}, invalid_parent),
+                ({"schema_version": 2}, directory_target),
+            ):
+                with self.subTest(dataset=dataset, path=path):
+                    with self.assertRaises(ValueError):
+                        flushot.write_fluview_v2_output(dataset, path)
+
+    def test_write_fluview_v2_output_preserves_existing_file_on_stage_failure(self):
+        dataset = {"schema_version": 2, "regional_weekly": []}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "flu-v2.json"
+            output.write_text("old bytes\n", encoding="utf-8")
+
+            def fail_dump(_dataset, file, **_kwargs):
+                file.write("partial")
+                raise RuntimeError("injected serialization failure")
+
+            with patch("flushot.json.dump", side_effect=fail_dump):
+                with self.assertRaisesRegex(RuntimeError, "injected"):
+                    flushot.write_fluview_v2_output(dataset, output)
+
+            self.assertEqual("old bytes\n", output.read_text(encoding="utf-8"))
+            self.assertEqual({"flu-v2.json"}, set(os.listdir(tmpdir)))
 
         metadata, regional, ilinet, mortality = self.fluview_v2_sources()
         regional["weeks"][3364]["labs"][1]["hhs_regions"][1]["elevated"] = 0

@@ -101,6 +101,17 @@ categories and pediatric-mortality categories remain separate namespaces, and
 national weekly mortality remains separate from HHS season totals. This pure
 builder does not change the legacy default command or publish files yet.
 
+FluView v2 publication is available only through the explicit JSON command:
+
+```bash
+python3 flushot.py v2 --json-path flu-v2.json
+```
+
+The path defaults to `flu-v2.json`. The command fetches and validates every
+reviewed source, builds the complete dataset, and atomically replaces one
+finite JSON file. Running `python3 flushot.py` with no arguments still uses the
+unchanged historical command and schema.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:
