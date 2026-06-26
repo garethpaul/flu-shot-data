@@ -18,6 +18,9 @@ FIXTURE = Path(__file__).parent / "fixtures" / "cdc_weekly_summary.html"
 FLUVIEW_PHASE2_FIXTURE = (
     Path(__file__).parent / "fixtures" / "fluview_phase2_init_2026-06-26.json"
 )
+FLUVIEW_PHASE2_REGION_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "fluview_phase2_region_2026-06-26.json"
+)
 
 
 def same_resolved_path(left, right):
@@ -64,6 +67,16 @@ class FakeOpener:
 class FluShotParserTests(unittest.TestCase):
     def fluview_phase2_fixture(self):
         return json.loads(FLUVIEW_PHASE2_FIXTURE.read_text(encoding="utf-8"))
+
+    def fluview_phase2_region_fixture(self):
+        return json.loads(
+            FLUVIEW_PHASE2_REGION_FIXTURE.read_text(encoding="utf-8")
+        )
+
+    def fluview_phase2_metadata(self):
+        return flushot.parse_fluview_phase2_metadata(
+            self.fluview_phase2_fixture()["response"]
+        )
 
     def test_parse_records_from_fixture(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
@@ -1057,6 +1070,203 @@ class FluShotParserTests(unittest.TestCase):
             with self.subTest(message=message):
                 with self.assertRaisesRegex(ValueError, message):
                     flushot.parse_fluview_phase2_metadata(payload)
+
+    def test_fluview_phase2_region_fixture_records_exact_source_provenance(self):
+        fixture = self.fluview_phase2_region_fixture()
+
+        self.assertEqual(
+            {
+                "source_url": flushot.FLUVIEW_PHASE2_DATA_URL,
+                "request_method": "POST",
+                "request_body": {
+                    "AppVersion": "Public",
+                    "SeasonID": 65,
+                    "RegionTypeID": 1,
+                    "RegionID": 1,
+                },
+                "retrieved_at": "2026-06-26T21:58:17Z",
+                "response_content_type": "application/json; charset=utf-8",
+                "full_response_bytes": 1166773,
+                "full_response_sha256": (
+                    "519d0af02375ba80319b1981ba45fd3659d71a51e393d32d68583e0eba31b994"
+                ),
+                "minimization": (
+                    "Retains two official weeks and every lab, HHS region, "
+                    "national region, virus category, positional metric, and "
+                    "declared-structure field consumed by "
+                    "parse_fluview_phase2_region_data."
+                ),
+            },
+            fixture["provenance"],
+        )
+
+    def test_parse_fluview_phase2_region_data_normalizes_declared_structure(self):
+        fixture = self.fluview_phase2_region_fixture()
+        payload = fixture["response"]
+        metadata = self.fluview_phase2_metadata()
+        original_payload = copy.deepcopy(payload)
+        original_metadata = copy.deepcopy(metadata)
+
+        regional_data = flushot.parse_fluview_phase2_region_data(payload, metadata)
+
+        self.assertEqual(65, regional_data["season_id"])
+        self.assertEqual(3364, regional_data["current_week_id"])
+        self.assertEqual([3327, 3364], list(regional_data["weeks"]))
+        current = regional_data["weeks"][3364]
+        self.assertEqual(24, current["week_number"])
+        self.assertEqual("2026-06-20", current["week_end"])
+        self.assertEqual({1, 2}, set(current["labs"]))
+        public_health = current["labs"][1]
+        self.assertEqual(set(range(1, 11)), set(public_health["hhs_regions"]))
+        self.assertEqual(0, public_health["national"]["region_id"])
+        region_one = public_health["hhs_regions"][1]
+        self.assertEqual(
+            {"cumulative": 889, "three_weeks": 4, "current": 1},
+            region_one["virus_counts"][6],
+        )
+        self.assertEqual(12.5, region_one["percent_positive"])
+        self.assertEqual(0.7318, region_one["weighted_ili"])
+        self.assertFalse(region_one["elevated"])
+        self.assertTrue(region_one["weekly_ili_data"])
+        self.assertFalse(region_one["insufficient"])
+        self.assertEqual(payload, original_payload)
+        self.assertEqual(metadata, original_metadata)
+
+    def test_parse_fluview_phase2_region_data_ignores_collection_order(self):
+        payload = self.fluview_phase2_region_fixture()["response"]
+        metadata = self.fluview_phase2_metadata()
+        expected = flushot.parse_fluview_phase2_region_data(payload, metadata)
+        reordered = copy.deepcopy(payload)
+        reordered["mmwr"].reverse()
+        reordered["viruslist"].reverse()
+        summary = reordered["WHO_Virus_Counts_Summary_Cumulative"]
+        summary["data"].reverse()
+        for week in summary["data"]:
+            week[1].reverse()
+            for lab in week[1]:
+                lab[1:] = reversed(lab[1:])
+                for segment in lab[1:]:
+                    segment[0][1].reverse()
+                    for region in segment[0][1]:
+                        region[1].reverse()
+
+        self.assertEqual(
+            expected,
+            flushot.parse_fluview_phase2_region_data(reordered, metadata),
+        )
+
+    def test_parse_fluview_phase2_region_data_rejects_structure_drift(self):
+        fixture = self.fluview_phase2_region_fixture()
+        mutations = []
+        missing_summary = copy.deepcopy(fixture["response"])
+        del missing_summary["WHO_Virus_Counts_Summary_Cumulative"]
+        mutations.append(missing_summary)
+        missing_structure = copy.deepcopy(fixture["response"])
+        del missing_structure["WHO_Virus_Counts_Summary_Cumulative"]["data_structure"]
+        mutations.append(missing_structure)
+        renamed_field = copy.deepcopy(fixture["response"])
+        renamed_field["WHO_Virus_Counts_Summary_Cumulative"]["data_structure"][0] = "week"
+        mutations.append(renamed_field)
+        malformed_week = copy.deepcopy(fixture["response"])
+        malformed_week["WHO_Virus_Counts_Summary_Cumulative"]["data"][0].append([])
+        mutations.append(malformed_week)
+        malformed_lab = copy.deepcopy(fixture["response"])
+        malformed_lab["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0] = [1]
+        mutations.append(malformed_lab)
+        malformed_region = copy.deepcopy(fixture["response"])
+        malformed_region["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0].append(0)
+        mutations.append(malformed_region)
+
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_region_data(
+                        payload,
+                        self.fluview_phase2_metadata(),
+                    )
+
+    def test_parse_fluview_phase2_region_data_rejects_catalog_disagreement(self):
+        fixture = self.fluview_phase2_region_fixture()
+        mutations = []
+        duplicate_week = copy.deepcopy(fixture["response"])
+        duplicate_week["mmwr"].append(copy.deepcopy(duplicate_week["mmwr"][0]))
+        mutations.append(duplicate_week)
+        unknown_virus = copy.deepcopy(fixture["response"])
+        unknown_virus["viruslist"][0]["virusid"] = 99
+        mutations.append(unknown_virus)
+        wrong_lab = copy.deepcopy(fixture["response"])
+        wrong_lab["viruslist"][0]["labtypeid"] = 2
+        mutations.append(wrong_lab)
+        wrong_label = copy.deepcopy(fixture["response"])
+        wrong_label["viruslist"][0]["label"] = "Different"
+        mutations.append(wrong_label)
+        missing_current = copy.deepcopy(fixture["response"])
+        missing_current["mmwr"] = missing_current["mmwr"][:1]
+        missing_current["WHO_Virus_Counts_Summary_Cumulative"]["data"] = (
+            missing_current["WHO_Virus_Counts_Summary_Cumulative"]["data"][:1]
+        )
+        mutations.append(missing_current)
+
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_region_data(
+                        payload,
+                        self.fluview_phase2_metadata(),
+                    )
+
+    def test_parse_fluview_phase2_region_data_rejects_incomplete_regions_and_viruses(self):
+        fixture = self.fluview_phase2_region_fixture()
+        mutations = []
+        missing_hhs_region = copy.deepcopy(fixture["response"])
+        missing_hhs_region["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1].pop()
+        mutations.append(missing_hhs_region)
+        wrong_national_region = copy.deepcopy(fixture["response"])
+        wrong_national_region["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][2][0][1][0][0] = 1
+        mutations.append(wrong_national_region)
+        duplicate_lab = copy.deepcopy(fixture["response"])
+        duplicate_lab["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1].append(
+            copy.deepcopy(duplicate_lab["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0])
+        )
+        mutations.append(duplicate_lab)
+        missing_virus = copy.deepcopy(fixture["response"])
+        missing_virus["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0][1].pop()
+        mutations.append(missing_virus)
+
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_region_data(
+                        payload,
+                        self.fluview_phase2_metadata(),
+                    )
+
+    def test_parse_fluview_phase2_region_data_rejects_invalid_counts_metrics_and_flags(self):
+        fixture = self.fluview_phase2_region_fixture()
+        mutations = []
+        negative_count = copy.deepcopy(fixture["response"])
+        negative_count["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0][1][0][1] = -1
+        mutations.append(negative_count)
+        unordered_counts = copy.deepcopy(fixture["response"])
+        unordered_counts["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0][1][0][2] = 1
+        mutations.append(unordered_counts)
+        invalid_percent = copy.deepcopy(fixture["response"])
+        invalid_percent["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0][2] = 101
+        mutations.append(invalid_percent)
+        invalid_metric_type = copy.deepcopy(fixture["response"])
+        invalid_metric_type["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0][5] = True
+        mutations.append(invalid_metric_type)
+        invalid_flag = copy.deepcopy(fixture["response"])
+        invalid_flag["WHO_Virus_Counts_Summary_Cumulative"]["data"][0][1][0][1][0][1][0][7] = 2
+        mutations.append(invalid_flag)
+
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_region_data(
+                        payload,
+                        self.fluview_phase2_metadata(),
+                    )
 
     def test_fetch_fluview_phase2_region_data_uses_reviewed_post_body(self):
         expected = {"mmwr": [], "WHO_Virus_Counts_Summary_Cumulative": {}}

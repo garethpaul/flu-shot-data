@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import os
 import re
 import secrets
@@ -33,6 +34,44 @@ FLUVIEW_PHASE4_INIT_URL = (
     "https://gis.cdc.gov/grasp/flu4/GetPhase04InitApp?appVersion=Public"
 )
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
+
+def _fluview_phase2_region_data_structure() -> list:
+    return [
+        "mmwrid",
+        [
+            [
+                "Labtypeid",
+                [
+                    [
+                        "regiontypeid",
+                        [
+                            [
+                                "regionid",
+                                [
+                                    [
+                                        "virusid",
+                                        "positive_count_cumulative",
+                                        "positive_count_three_weeks",
+                                        "positive_count",
+                                    ]
+                                ],
+                                "PercentPositive",
+                                "PercentA",
+                                "PercentB",
+                                "PercentWeightedILI",
+                                "Baseline",
+                                "elevated",
+                                "PercentUnWeightedILI",
+                                "WeeklyILIData",
+                                "Insufficient",
+                            ]
+                        ],
+                    ]
+                ],
+            ]
+        ],
+    ]
 READ_CHUNK_BYTES = 64 * 1024
 USER_AGENT = (
     "Mozilla/5.0 (compatible; flu-shot-data/1.0; "
@@ -646,6 +685,270 @@ def parse_fluview_phase2_metadata(payload: dict) -> dict:
         "hhs_regions": dict(sorted(active_regions.items())),
         "lab_types": dict(sorted(lab_types.items())),
         "viruses": dict(sorted(viruses.items())),
+    }
+
+
+def _require_nonnegative_integer(value, label: str) -> int:
+    if type(value) is not int or value < 0:
+        raise ValueError(f"FluView {label} must be a nonnegative integer.")
+    return value
+
+
+def _require_percentage(value, label: str):
+    if type(value) not in {int, float} or not math.isfinite(value):
+        raise ValueError(f"FluView {label} must be a finite number.")
+    if not 0 <= value <= 100:
+        raise ValueError(f"FluView {label} must be between zero and 100.")
+    return value
+
+
+def _require_binary_flag(value, label: str) -> bool:
+    if type(value) is not int or value not in {0, 1}:
+        raise ValueError(f"FluView {label} must be zero or one.")
+    return bool(value)
+
+
+def _parse_fluview_region_record(record, expected_virus_ids: set[int]) -> dict:
+    if not isinstance(record, list) or len(record) != 11:
+        raise ValueError("FluView regional data rows must contain 11 fields.")
+    region_id = _require_nonnegative_integer(record[0], "region identifier")
+    virus_rows = record[1]
+    if not isinstance(virus_rows, list):
+        raise ValueError("FluView regional virus data must be an array.")
+
+    virus_counts = {}
+    for virus_row in virus_rows:
+        if not isinstance(virus_row, list) or len(virus_row) != 4:
+            raise ValueError("FluView regional virus rows must contain four fields.")
+        virus_id = _require_positive_integer(virus_row[0], "virus identifier")
+        if virus_id in virus_counts:
+            raise ValueError("FluView regional data contains a duplicate virus identifier.")
+        cumulative = _require_nonnegative_integer(
+            virus_row[1],
+            "cumulative virus count",
+        )
+        three_weeks = _require_nonnegative_integer(
+            virus_row[2],
+            "three-week virus count",
+        )
+        current = _require_nonnegative_integer(
+            virus_row[3],
+            "current virus count",
+        )
+        if not cumulative >= three_weeks >= current:
+            raise ValueError(
+                "FluView virus counts must satisfy cumulative, three-week, and current order."
+            )
+        virus_counts[virus_id] = {
+            "cumulative": cumulative,
+            "three_weeks": three_weeks,
+            "current": current,
+        }
+
+    if set(virus_counts) != expected_virus_ids:
+        raise ValueError("FluView regional data must contain the expected virus categories.")
+
+    return {
+        "region_id": region_id,
+        "virus_counts": dict(sorted(virus_counts.items())),
+        "percent_positive": _require_percentage(record[2], "percent positive"),
+        "percent_a": _require_percentage(record[3], "percent A"),
+        "percent_b": _require_percentage(record[4], "percent B"),
+        "weighted_ili": _require_percentage(record[5], "weighted ILI"),
+        "baseline": _require_percentage(record[6], "ILI baseline"),
+        "elevated": _require_binary_flag(record[7], "elevated flag"),
+        "unweighted_ili": _require_percentage(record[8], "unweighted ILI"),
+        "weekly_ili_data": _require_binary_flag(record[9], "weekly ILI data flag"),
+        "insufficient": _require_binary_flag(record[10], "insufficient data flag"),
+    }
+
+
+def parse_fluview_phase2_region_data(payload: dict, metadata: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("FluView phase 2 regional data must be an object.")
+    if not isinstance(metadata, dict):
+        raise ValueError("FluView phase 2 metadata must be a normalized object.")
+
+    season_id = _require_positive_integer(
+        metadata.get("season_id"),
+        "metadata season identifier",
+    )
+    current_week_id = _require_positive_integer(
+        metadata.get("week_id"),
+        "metadata MMWR identifier",
+    )
+    hhs_regions = metadata.get("hhs_regions")
+    if not isinstance(hhs_regions, dict) or set(hhs_regions) != set(range(1, 11)):
+        raise ValueError("FluView metadata must contain HHS regions 1 through 10.")
+    lab_types = metadata.get("lab_types")
+    if not isinstance(lab_types, dict) or set(lab_types) != {1, 2}:
+        raise ValueError("FluView metadata must contain lab types 1 and 2.")
+    metadata_viruses = metadata.get("viruses")
+    if not isinstance(metadata_viruses, dict) or not metadata_viruses:
+        raise ValueError("FluView metadata must contain virus categories.")
+
+    expected_viruses_by_lab = {1: set(), 2: set()}
+    for virus_id, virus in metadata_viruses.items():
+        virus_id = _require_positive_integer(virus_id, "metadata virus identifier")
+        if not isinstance(virus, dict):
+            raise ValueError("FluView metadata virus categories must be objects.")
+        lab_type_id = _require_positive_integer(
+            virus.get("lab_type_id"),
+            "metadata virus lab type identifier",
+        )
+        if lab_type_id not in expected_viruses_by_lab:
+            raise ValueError("FluView metadata viruses must reference lab types 1 or 2.")
+        expected_viruses_by_lab[lab_type_id].add(virus_id)
+    if any(not virus_ids for virus_ids in expected_viruses_by_lab.values()):
+        raise ValueError("FluView metadata must contain viruses for both lab types.")
+
+    mmwr_rows = _require_object_list(payload, "mmwr")
+    weeks = {}
+    for week in mmwr_rows:
+        week_id = _require_positive_integer(week.get("mmwrid"), "MMWR identifier")
+        if week_id in weeks:
+            raise ValueError("FluView regional data contains a duplicate MMWR identifier.")
+        if _require_positive_integer(
+            week.get("seasonid"),
+            "MMWR season identifier",
+        ) != season_id:
+            raise ValueError("FluView regional MMWR rows must match the metadata season.")
+        week_number = week.get("weeknumber")
+        if type(week_number) is not int or not 1 <= week_number <= 53:
+            raise ValueError("FluView MMWR week number must be between 1 and 53.")
+        year = week.get("year")
+        if type(year) is not int or not 1900 <= year <= 9999:
+            raise ValueError("FluView MMWR year must be a four-digit integer.")
+        if week.get("yearweek") != year * 100 + week_number:
+            raise ValueError("FluView MMWR yearweek must match year and week number.")
+        weekend = _require_nonempty_string(week.get("weekend"), "MMWR weekend")
+        try:
+            parsed_weekend = datetime.strptime(weekend, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("FluView MMWR weekend must be a valid ISO date.") from None
+        if parsed_weekend.strftime("%Y-%m-%d") != weekend:
+            raise ValueError("FluView MMWR weekend must be a valid ISO date.")
+        weeks[week_id] = {
+            "week_number": week_number,
+            "week_end": weekend,
+        }
+
+    response_viruses = _require_object_list(payload, "viruslist")
+    response_viruses_by_id = {}
+    for virus in response_viruses:
+        virus_id = _require_positive_integer(virus.get("virusid"), "virus identifier")
+        if virus_id in response_viruses_by_id:
+            raise ValueError("FluView regional data contains a duplicate virus identifier.")
+        lab_type_id = _require_positive_integer(
+            virus.get("labtypeid"),
+            "virus lab type identifier",
+        )
+        response_viruses_by_id[virus_id] = {
+            "description": _require_nonempty_string(
+                virus.get("description"),
+                "virus description",
+            ),
+            "label": _require_nonempty_string(virus.get("label"), "virus label"),
+            "lab_type_id": lab_type_id,
+        }
+    expected_viruses = {
+        virus_id: {
+            "description": virus.get("description"),
+            "label": virus.get("label"),
+            "lab_type_id": virus.get("lab_type_id"),
+        }
+        for virus_id, virus in metadata_viruses.items()
+    }
+    if response_viruses_by_id != expected_viruses:
+        raise ValueError("FluView regional virus catalog must match validated metadata.")
+
+    summary = payload.get("WHO_Virus_Counts_Summary_Cumulative")
+    if not isinstance(summary, dict):
+        raise ValueError("FluView regional summary must be an object.")
+    if summary.get("data_structure") != _fluview_phase2_region_data_structure():
+        raise ValueError("FluView regional data structure does not match the reviewed schema.")
+    data_rows = summary.get("data")
+    if not isinstance(data_rows, list):
+        raise ValueError("FluView regional summary data must be an array.")
+
+    decoded_week_ids = set()
+    for week_row in data_rows:
+        if not isinstance(week_row, list) or len(week_row) != 2:
+            raise ValueError("FluView regional week rows must contain two fields.")
+        week_id = _require_positive_integer(week_row[0], "summary MMWR identifier")
+        if week_id in decoded_week_ids:
+            raise ValueError("FluView regional summary contains a duplicate MMWR identifier.")
+        decoded_week_ids.add(week_id)
+        if week_id not in weeks:
+            raise ValueError("FluView regional summary must reference a known MMWR row.")
+        lab_rows = week_row[1]
+        if not isinstance(lab_rows, list):
+            raise ValueError("FluView regional lab data must be an array.")
+
+        labs = {}
+        for lab_row in lab_rows:
+            if not isinstance(lab_row, list) or len(lab_row) < 2:
+                raise ValueError("FluView regional lab rows must contain collection segments.")
+            lab_type_id = _require_positive_integer(lab_row[0], "lab type identifier")
+            if lab_type_id in labs:
+                raise ValueError("FluView regional data contains a duplicate lab type.")
+            if lab_type_id not in expected_viruses_by_lab:
+                raise ValueError("FluView regional data contains an unknown lab type.")
+
+            region_types = {}
+            for segment in lab_row[1:]:
+                if not isinstance(segment, list):
+                    raise ValueError("FluView regional collection segments must be arrays.")
+                for region_type_row in segment:
+                    if not isinstance(region_type_row, list) or len(region_type_row) != 2:
+                        raise ValueError("FluView region type rows must contain two fields.")
+                    region_type_id = _require_positive_integer(
+                        region_type_row[0],
+                        "region type identifier",
+                    )
+                    if region_type_id in region_types:
+                        raise ValueError("FluView regional data contains a duplicate region type.")
+                    region_rows = region_type_row[1]
+                    if not isinstance(region_rows, list):
+                        raise ValueError("FluView region type data must be an array.")
+                    decoded_regions = {}
+                    for region_row in region_rows:
+                        decoded = _parse_fluview_region_record(
+                            region_row,
+                            expected_viruses_by_lab[lab_type_id],
+                        )
+                        region_id = decoded["region_id"]
+                        if region_id in decoded_regions:
+                            raise ValueError(
+                                "FluView regional data contains a duplicate region identifier."
+                            )
+                        decoded_regions[region_id] = decoded
+                    region_types[region_type_id] = decoded_regions
+
+            if set(region_types) != {1, 3}:
+                raise ValueError("FluView regional data must contain region types 1 and 3.")
+            if set(region_types[1]) != set(range(1, 11)):
+                raise ValueError("FluView regional data must contain HHS regions 1 through 10.")
+            if set(region_types[3]) != {0}:
+                raise ValueError("FluView national data must contain only region zero.")
+            labs[lab_type_id] = {
+                "hhs_regions": dict(sorted(region_types[1].items())),
+                "national": region_types[3][0],
+            }
+
+        if set(labs) != {1, 2}:
+            raise ValueError("FluView regional data must contain lab types 1 and 2.")
+        weeks[week_id]["labs"] = dict(sorted(labs.items()))
+
+    if decoded_week_ids != set(weeks):
+        raise ValueError("FluView regional summary must contain every MMWR row exactly once.")
+    if current_week_id not in decoded_week_ids:
+        raise ValueError("FluView regional data must contain the metadata current week.")
+
+    return {
+        "season_id": season_id,
+        "current_week_id": current_week_id,
+        "weeks": dict(sorted(weeks.items())),
     }
 
 

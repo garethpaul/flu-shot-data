@@ -1,5 +1,79 @@
 # Changes
 
+## 2026-06-26 15:01 PDT - P1 - Decode FluView phase 2 regional data
+
+### Summary
+
+Recorded a minimized official phase 2 regional fixture and added strict,
+order-independent decoding of the endpoint's declared positional structure for
+issue #24 without choosing or publishing the future `v2` schema.
+
+### Work completed
+
+- Recorded exact POST request, retrieval time, response media type, full
+  1,166,773-byte response length, and SHA-256 provenance.
+- Retained two official weeks with both lab types, all ten HHS regions,
+  national region 0, every virus category, metric, flag, and declared schema
+  field consumed by the decoder.
+- Added complete response validation for week/catalog agreement, positional
+  row shape, lab and region completeness, virus relationships, ordered counts,
+  bounded finite metrics, and binary flags.
+- Added a stable nested source model preserving lab, HHS-region, national,
+  virus-count-window, ILI, and flag provenance before later joins.
+- Added mutation-sensitive fixture, decoder, regression, plan, and guidance
+  contracts.
+
+### Threads
+
+- None; this stage follows the merged source transport and metadata work.
+
+### Files changed
+
+- `tests/fixtures/fluview_phase2_region_2026-06-26.json` — minimized official
+  regional response and provenance.
+- `flushot.py` — exact declared-structure validation and full regional source
+  normalization.
+- `tests/test_flushot.py` — provenance, happy-path, order, structure, catalog,
+  completeness, count, metric, and flag regressions.
+- `scripts/check-baseline.sh` — durable fixture and decoder contracts.
+- `AGENTS.md`, `README.md`, `SECURITY.md`, and `VISION.md` — maintained
+  validated FluView phase 2 regional data policy and roadmap.
+- `docs/plans/2026-06-26-fluview-phase2-regional-decoder-design.md` — design
+  record.
+- `docs/plans/2026-06-26-fluview-phase2-regional-decoder.md` — implementation
+  record.
+
+### Validation
+
+- RED focused suite — six tests produced 21 expected errors on the missing
+  decoder.
+- GREEN focused/full suites — all 92 tests passed.
+- Live fetch-to-decoder smoke — normalized all 38 current-season weeks, both
+  lab types, ten HHS regions per lab, and national region 0.
+- `make check`, `make lint`, `make test`, `make build`, repository-root Make,
+  and absolute-Makefile verification from `/tmp` — passed.
+- Ten isolated hostile provenance, fixture completeness, schema, decoder,
+  regression, guidance, and plan mutations — all rejected.
+- JSON syntax, in-memory Python compilation, shell syntax, current-tree
+  gitleaks, and `git diff --check` — passed with no findings.
+
+### Bugs / findings
+
+- The endpoint's declared schema represents repeated region-type collections,
+  while live lab rows serialize regional and national collections as separate
+  positional segments; assuming one segment would discard national data.
+- P1 live generation remains unavailable until the complete `v2` schema,
+  remaining source fixtures/decoders, joins, and publication are implemented.
+
+### Blockers
+
+- None for this regional decoding stage.
+
+### Next action
+
+- Define the versioned `v2` record contract and explicit source joins without
+  changing the legacy default command.
+
 ## 2026-06-26 14:52 PDT - P1 - Normalize FluView phase 2 metadata
 
 ### Summary

@@ -43,6 +43,10 @@ Helpful reports include:
 - Treat only validated FluView phase 2 metadata as join authority; upstream
   collection shape, identifiers, dates, catalogs, and relationships are
   untrusted until normalized by the fixture-backed decoder.
+- Treat only validated FluView phase 2 regional data as metric authority. Fail
+  closed on declared-structure drift, malformed positional rows, missing labs
+  or regions, virus-catalog disagreement, invalid count relationships,
+  non-finite or out-of-range metrics, and non-binary source flags.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
