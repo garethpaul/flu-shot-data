@@ -1,5 +1,71 @@
 # Changes
 
+## 2026-06-26 14:42 PDT - P1 - Map current FluView sources
+
+### Summary
+
+Completed the official source-provenance research needed for issue #24 and
+proved that the retired eleven-field schema cannot be reproduced truthfully
+from current FluView products.
+
+### Work completed
+
+- Verified official JSON endpoints for season/MMWR metadata, HHS-region ILI,
+  positivity, subtype counts, and pediatric mortality.
+- Verified the official line-chart CSV provider-count export.
+- Mapped each usable source field and documented request shapes.
+- Decided to preserve the historical schema as `v1` and require an explicit
+  live `v2` schema rather than coercing incompatible fields.
+- Defined staged transport, fixture, validation, join, and publication work.
+
+### Threads
+
+- None; issue #24, prior design records, the parser, tests, current CDC pages,
+  dashboard bundles, and live official responses were reviewed directly.
+
+### Files changed
+
+- `docs/plans/2026-06-26-cdc-fluview-source-provenance.md` — verified source
+  map, incompatibility decision, and implementation stages.
+- `docs/plans/2026-06-26-cdc-fluview-source-migration.md` — linked evidence and
+  recorded the required versioned replacement.
+- `AGENTS.md`, `README.md`, `SECURITY.md`, and `VISION.md` — synchronized
+  migration and safety guidance.
+
+### Validation
+
+- Official FluView phase 2 initialization JSON — HTTP 200; seasons, MMWR,
+  regions, lab types, and virus categories verified.
+- Official FluView phase 2 regional JSON — HTTP 200; declared nested structure,
+  ILI, positivity, and subtype counts verified.
+- Official FluView line-chart CSV — HTTP 200; `NUM. OF PROVIDERS` confirmed as
+  distinct from legacy jurisdictions.
+- Official FluView phase 4 initialization JSON — HTTP 200; national pediatric
+  mortality grain verified.
+- Machine assertions over the four exact downloaded responses — passed source
+  key, category, field, and grain checks after correcting one local `jq`
+  operator-precedence mistake against the same response bytes.
+- `make check` — passed all 69 offline regressions and specialized transport
+  boundary checks.
+- Current-tree gitleaks and `git diff --check` — passed with no findings.
+
+### Bugs / findings
+
+- P1 remains open: the default live source is retired.
+- `NUM_JURIS` has no verified current equivalent.
+- Current no-subtype categories and pediatric mortality grain are incompatible
+  with the historical regional schema.
+
+### Blockers
+
+- Production migration still requires source-specific bounded JSON/CSV
+  transports, minimized official fixtures, and a complete `v2` output schema.
+
+### Next action
+
+- Implement the source-specific transport layer test-first without changing
+  the default command.
+
 ## 2026-06-26 11:46 PDT - P1 - Record retired CDC live source
 
 ### Summary

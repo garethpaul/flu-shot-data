@@ -19,6 +19,8 @@ Priority:
 
 - Replace the retired single-page CDC source through issue #24 using stable
   official FluView data products and an explicitly versioned schema
+- Preserve the reviewed FluView source map and the decision that current
+  provider, subtype, and pediatric mortality semantics require a `v2` schema
 - Preserve the CDC weekly-summary extraction logic
 - Keep CSV and JSON output schemas visible
 - Avoid committing generated data unless intentionally versioned
@@ -87,6 +89,8 @@ Current baseline:
 Next priorities:
 
 - Complete issue #24 before publishing current generated data
+- Implement source-specific bounded JSON/CSV transport and minimized official
+  fixtures before changing the default command
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers

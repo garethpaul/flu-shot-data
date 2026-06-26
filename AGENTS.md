@@ -44,6 +44,11 @@ CDC weekly influenza summary table into CSV and JSON records.
 - No required secret or credential file was identified in the repository scan. If you add integrations later, keep secrets out of git.
 - Keep live fetch URLs on HTTPS with a hostname; use fixtures for default tests rather than live network calls.
 - Keep live fetch hosts limited to `cdc.gov` or CDC subdomains unless a reviewed source migration changes the data provenance boundary.
+- Keep issue #24's reviewed FluView JSON/CSV endpoints behind source-specific
+  method, path, query, request-body, media-type, and size validation; do not
+  loosen the historical HTML fetcher globally.
+- Do not substitute provider counts for legacy jurisdiction counts or copy
+  national pediatric mortality into HHS-region records.
 - Reject embedded credentials in live fetch URLs before opening network requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source migration changes the provenance boundary.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
