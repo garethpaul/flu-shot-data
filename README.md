@@ -47,7 +47,16 @@ No third-party Python dependencies are required for the current baseline.
 
 ## Running or Using the Project
 
-Generate `flu.csv` and `flu.json` from the CDC weekly flu summary page:
+The historical CDC weekly summary endpoint used by the default command was
+retired before June 26, 2026. The current FluView report splits the legacy
+11-field schema across multiple data products, so unattended live generation
+is temporarily unavailable rather than silently emitting incomplete or stale
+records. Track the source migration in
+[#24](https://github.com/garethpaul/flu-shot-data/issues/24).
+
+The command below still documents the legacy entry point, but currently fails
+before output publication because the retired CDC URL no longer returns the
+expected summary page:
 
 ```bash
 python3 flushot.py
@@ -129,7 +138,9 @@ GitHub Actions runs the same offline `make check` baseline for pushes and pull
 Checkout uses read-only permissions without persisting the GitHub token.
 
 Fixture tests do not prove that the current live CDC page still has compatible
-markup. Validate live scraping separately before publishing current data.
+markup. A live check on June 26, 2026 confirmed that the default source is
+retired; do not publish current data until issue #24 defines and validates the
+replacement official CDC sources.
 
 ## Configuration and Secrets
 

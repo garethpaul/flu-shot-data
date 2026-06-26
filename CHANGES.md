@@ -1,5 +1,45 @@
 # Changes
 
+## 2026-06-26 11:46 PDT - P1 - Record retired CDC live source
+
+### Summary
+Confirmed that the default CDC weekly URL now returns HTTP 403 with a CDC Page
+Not Found response. The current FluView report splits the legacy output fields
+across multiple products, so a one-line URL replacement would be incorrect.
+
+### Work completed
+- Opened issue #24 with official CDC evidence and migration requirements.
+- Marked unattended live generation unavailable until the schema is rebuilt
+  from stable official sources.
+- Preserved the fixture-backed historical parser and output safety contracts.
+
+### Threads
+- Started: CDC FluView source migration — tracked in issue #24.
+- Delegated: none.
+
+### Files changed
+- `README.md` — documented the retired default and publication boundary.
+- `VISION.md` — prioritized the source and schema migration.
+- `docs/plans/2026-06-26-cdc-fluview-source-migration.md` — recorded evidence,
+  rejected shortcuts, requirements, and validation boundaries.
+
+### Validation
+- Live request to `https://www.cdc.gov/flu/weekly/` — HTTP 403 Page Not Found.
+- Official `https://www.cdc.gov/fluview/surveillance/index.html` — HTTP 200.
+- `make check` — passed after documentation changes.
+
+### Bugs / findings
+- P1: `python3 flushot.py` cannot currently fetch its default live source.
+- Current FluView pages do not contain the legacy combined regional table.
+
+### Blockers
+- Stable official sources and join semantics for every legacy field require a
+  separate, fixture-backed design; static weekly URLs are not acceptable.
+
+### Next action
+- Implement issue #24 test-first using recorded official CDC fixtures and a
+  versioned source/schema contract.
+
 ## 2026-06-17
 
 - Rejected existing directory and special-file output targets before staging
