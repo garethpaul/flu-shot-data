@@ -1,0 +1,292 @@
+{
+  "provenance": {
+    "source_url": "https://gis.cdc.gov/grasp/flu2/PostPhase02LineChartDataDownload",
+    "request_method": "POST",
+    "season_id": 65,
+    "retrieved_at": "2026-06-26T22:24:21Z",
+    "response_content_type": "application/octet-stream",
+    "minimization": "Retains exact title/header and the two MMWR rows shared by the minimized regional response for every HHS region."
+  },
+  "regions": [
+    {
+      "region_id": 1,
+      "full_response_bytes": 2583,
+      "full_response_sha256": "985493ce04d949f06ac66d846b9bf56e513711bf362c3c00b6f0241448115128",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,263,549,505,,217,316,1850,168814,280,1.09588,1.08073\n2026,24,217,349,303,,148,208,1225,162510,270,0.7538,0.7318\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 1,
+            "Name": "1"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 2,
+      "full_response_bytes": 2668,
+      "full_response_sha256": "41c6d063a4b2d816cf5394c229761d6c0799b27543ac09efc8756a54f7c872d9",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,1471,2035,1869,,626,565,6566,283310,400,2.3176,2.38832\n2026,24,1349,1363,1197,,406,384,4699,267409,350,1.75723,1.80528\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 2,
+            "Name": "2"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 3,
+      "full_response_bytes": 2628,
+      "full_response_sha256": "fbfbf91cbf92c7f1cba257c690bb062db7fe6b6442731b002023636b9a7de14f",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,827,1274,1009,,418,324,3852,277254,451,1.38934,1.31548\n2026,24,682,686,637,,295,311,2611,267490,419,0.976111,0.920688\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 3,
+            "Name": "3"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 4,
+      "full_response_bytes": 2738,
+      "full_response_sha256": "ce9f4b36460efdaa7360f96e01a069793adfe47cf072f76d9ea4fe78aea47f6d",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,2624,3629,2843,,1089,1069,11254,678252,969,1.65927,1.82616\n2026,24,1648,1576,1775,,699,668,6366,624155,916,1.01994,1.10975\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 4,
+            "Name": "4"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 5,
+      "full_response_bytes": 2649,
+      "full_response_sha256": "f67b40bfc689347a71268640e3bba0c8ddad4270323f141d06f406333e0624c2",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,955,1443,1022,,398,442,4260,401774,867,1.0603,1.08884\n2026,24,546,530,555,,237,283,2151,371228,829,0.579428,0.622322\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 5,
+            "Name": "5"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 6,
+      "full_response_bytes": 2576,
+      "full_response_sha256": "3ee7164c30bc84e1f5c021627f125ed67779c48d8364e7cef79d026536215f69",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,513,831,483,,161,145,2133,117808,213,1.81057,1.91704\n2026,24,269,220,284,,107,88,968,110860,220,0.873173,1.07704\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 6,
+            "Name": "6"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 7,
+      "full_response_bytes": 2436,
+      "full_response_sha256": "a44ac814c8a7bfe37ab922e2319fecfd48508f052ad406672dbb272bfc40b1e8",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,141,204,139,,48,40,572,57767,170,0.990185,0.880772\n2026,24,69,60,64,,29,33,255,51604,145,0.494148,0.435721\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 7,
+            "Name": "7"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 8,
+      "full_response_bytes": 2518,
+      "full_response_sha256": "560844e5356963582a58f6591f77301fb1a0f202762f983f12d507d0cdf79b7a",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,279,378,242,,88,104,1091,94041,237,1.16013,1.04245\n2026,24,180,188,181,,45,80,674,98787,229,0.682276,0.742576\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 8,
+            "Name": "8"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 9,
+      "full_response_bytes": 2733,
+      "full_response_sha256": "32bac37c510c628be318c60128ebe99d4fc063b82849e423a87ff741b0be6cb4",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,1017,2076,2661,,1125,1370,8249,427246,419,1.93074,1.9602\n2026,24,794,1228,2417,,1069,1314,6822,380869,390,1.79117,1.84272\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 9,
+            "Name": "9"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    },
+    {
+      "region_id": 10,
+      "full_response_bytes": 2580,
+      "full_response_sha256": "5137935ad6fe09076a9e621fdf0403b51693a5645bee1898fd479e860f0e6b9a",
+      "response_text": "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS\nYEAR,WEEK,AGE 0-4,AGE 5-24,AGE 25-49,AGE 25-64,AGE 50-64,AGE 65,ILITOTAL,TOTAL PATIENTS,NUM. OF PROVIDERS,%UNWEIGHTED ILI,% WEIGHTED ILI\n2025,40,302,573,454,,176,199,1704,166569,318,1.023,1.06826\n2026,24,306,454,383,,148,159,1450,170044,304,0.85272,0.86219\n",
+      "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [
+          {
+            "ID": 1,
+            "Name": "ILINet"
+          }
+        ],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [
+          {
+            "ID": 10,
+            "Name": "10"
+          }
+        ],
+        "SeasonsDT": [
+          {
+            "ID": 65,
+            "Name": "65"
+          }
+        ]
+      }
+    }
+  ]
+}

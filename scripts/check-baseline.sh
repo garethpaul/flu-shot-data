@@ -48,6 +48,8 @@ FLUVIEW_ILINET_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-ilinet-csv-decode
 FLUVIEW_ILINET_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-ilinet-csv-decoder.md"
 FLUVIEW_PHASE4_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase4-mortality-decoder-design.md"
 FLUVIEW_PHASE4_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase4-mortality-decoder.md"
+FLUVIEW_V2_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-v2-dataset-design.md"
+FLUVIEW_V2_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-v2-dataset.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -114,6 +116,9 @@ for path in \
   "docs/plans/2026-06-26-fluview-phase4-mortality-decoder-design.md" \
   "docs/plans/2026-06-26-fluview-phase4-mortality-decoder.md" \
   "tests/fixtures/fluview_phase4_mortality_2026-06-26.json" \
+  "docs/plans/2026-06-26-fluview-v2-dataset-design.md" \
+  "docs/plans/2026-06-26-fluview-v2-dataset.md" \
+  "tests/fixtures/fluview_phase2_line_all_regions_2026-06-26.json" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -486,6 +491,93 @@ for x in ("test_parse_fluview_phase4_mortality_preserves_national_and_region_gra
  if x not in tests: raise SystemExit("Phase 4 tests missing")
 if "Status: Completed" not in design or "Status: Completed" not in plan: raise SystemExit("Phase 4 plans incomplete")
 if any("validated FluView phase 4 mortality" not in d for d in docs): raise SystemExit("Phase 4 guidance missing")
+PY
+
+"$PYTHON" - \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$ROOT_DIR/tests/fixtures/fluview_phase2_line_all_regions_2026-06-26.json" \
+  "$FLUVIEW_V2_DESIGN" \
+  "$FLUVIEW_V2_PLAN" \
+  "$ROOT_DIR/AGENTS.md" \
+  "$ROOT_DIR/README.md" \
+  "$ROOT_DIR/SECURITY.md" \
+  "$ROOT_DIR/VISION.md" \
+  "$ROOT_DIR/CHANGES.md" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+tests = Path(sys.argv[2]).read_text(encoding="utf-8")
+fixture = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+design = Path(sys.argv[4]).read_text(encoding="utf-8")
+plan = Path(sys.argv[5]).read_text(encoding="utf-8")
+docs = [Path(path).read_text(encoding="utf-8") for path in sys.argv[6:]]
+
+provenance = fixture.get("provenance", {})
+if provenance.get("retrieved_at") != "2026-06-26T22:24:21Z":
+    raise SystemExit("FluView v2 all-region fixture retrieval time drifted.")
+expected = {
+    1: (2583, "985493ce04d949f06ac66d846b9bf56e513711bf362c3c00b6f0241448115128"),
+    2: (2668, "41c6d063a4b2d816cf5394c229761d6c0799b27543ac09efc8756a54f7c872d9"),
+    3: (2628, "fbfbf91cbf92c7f1cba257c690bb062db7fe6b6442731b002023636b9a7de14f"),
+    4: (2738, "ce9f4b36460efdaa7360f96e01a069793adfe47cf072f76d9ea4fe78aea47f6d"),
+    5: (2649, "f67b40bfc689347a71268640e3bba0c8ddad4270323f141d06f406333e0624c2"),
+    6: (2576, "3ee7164c30bc84e1f5c021627f125ed67779c48d8364e7cef79d026536215f69"),
+    7: (2436, "a44ac814c8a7bfe37ab922e2319fecfd48508f052ad406672dbb272bfc40b1e8"),
+    8: (2518, "560844e5356963582a58f6591f77301fb1a0f202762f983f12d507d0cdf79b7a"),
+    9: (2733, "32bac37c510c628be318c60128ebe99d4fc063b82849e423a87ff741b0be6cb4"),
+    10: (2580, "5137935ad6fe09076a9e621fdf0403b51693a5645bee1898fd479e860f0e6b9a"),
+}
+regions = fixture.get("regions", [])
+actual = {
+    item.get("region_id"): (
+        item.get("full_response_bytes"), item.get("full_response_sha256")
+    )
+    for item in regions
+}
+if actual != expected:
+    raise SystemExit("FluView v2 all-region fixture provenance drifted.")
+for item in regions:
+    region_id = item["region_id"]
+    if item.get("request_body", {}).get("SubRegionsDT") != [
+        {"ID": region_id, "Name": str(region_id)}
+    ]:
+        raise SystemExit("FluView v2 fixture request identity drifted.")
+    lines = item.get("response_text", "").splitlines()
+    if len(lines) != 4 or not lines[2].startswith("2025,40,") or not lines[3].startswith("2026,24,"):
+        raise SystemExit("FluView v2 fixture must retain exactly two reviewed rows.")
+
+source_contracts = (
+    '"yearweek": yearweek',
+    "def build_fluview_v2_dataset(",
+    '"schema_version": 2',
+    '"laboratory_virus_categories"',
+    '"regional_weekly"',
+    '"pediatric_mortality"',
+    '"national_weekly_and_hhs_season_totals"',
+    'raise ValueError("FluView v2 ILINet and regional ILI metrics disagree.")',
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("FluView v2 builder contracts are incomplete.")
+
+test_contracts = (
+    "test_fluview_all_region_line_fixture_records_exact_provenance",
+    "test_build_fluview_v2_dataset_emits_truthful_versioned_schema",
+    "test_build_fluview_v2_dataset_orders_records_and_categories",
+    "test_build_fluview_v2_dataset_rejects_source_identity_and_coverage_drift",
+    "test_build_fluview_v2_dataset_rejects_ili_disagreement",
+    "test_build_fluview_v2_dataset_rejects_malformed_metric_types",
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("FluView v2 builder regressions must remain complete.")
+if "Status: Completed" not in design or "Status: Completed" not in plan:
+    raise SystemExit("FluView v2 plans must be completed.")
+if "make check" not in plan:
+    raise SystemExit("FluView v2 plan must record make check verification.")
+if any("FluView v2 dataset" not in document for document in docs):
+    raise SystemExit("Project guidance must preserve the FluView v2 dataset contract.")
 PY
 
 "$PYTHON" - \

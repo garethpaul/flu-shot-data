@@ -54,6 +54,9 @@ Helpful reports include:
 - Keep validated FluView phase 4 mortality grain-separated. Require complete
   weekly virus groups, zero future placeholders, ten HHS season rows, and equal
   national/HHS totals before downstream use.
+- Build the FluView v2 dataset only from validated source models. Fail closed
+  on source identity, coverage, yearweek, duplicated ILI, boolean, or mortality
+  disagreement; keep laboratory and mortality virus IDs in separate catalogs.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
