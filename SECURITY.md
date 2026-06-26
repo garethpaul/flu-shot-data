@@ -37,6 +37,9 @@ Helpful reports include:
 - Issue #24's reviewed FluView endpoints require source-specific query, POST
   body, JSON, and CSV policies. Implement them as narrow adapters; do not relax
   the historical HTML fetcher's global URL or response-metadata boundaries.
+- Every source-specific FluView transport requires its exact final URL, fixed
+  method and request shape, identity encoding, one reviewed media type, strict
+  UTF-8, and the declared/streamed 2 MiB ceiling before parsing.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.

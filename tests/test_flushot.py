@@ -871,6 +871,215 @@ class FluShotParserTests(unittest.TestCase):
 
         build_opener.assert_not_called()
 
+    def test_fetch_fluview_phase2_init_uses_exact_get_and_returns_json_object(self):
+        expected = {"seasons": [{"seasonid": 65}], "mmwr": []}
+        body = json.dumps(expected).encode("utf-8")
+        response = FakeResponse(
+            body=body,
+            url=flushot.FLUVIEW_PHASE2_INIT_URL,
+            headers={
+                "Content-Length": str(len(body)),
+                "Content-Type": "application/json; charset=utf-8",
+            },
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            result = flushot.fetch_fluview_phase2_init(timeout="45")
+
+        self.assertEqual(expected, result)
+        self.assertEqual("GET", opener.request.get_method())
+        self.assertEqual(flushot.FLUVIEW_PHASE2_INIT_URL, opener.request.full_url)
+        self.assertIsNone(opener.request.data)
+        self.assertEqual(45, opener.timeout)
+
+    def test_fetch_fluview_phase4_init_uses_exact_get_and_returns_json_object(self):
+        expected = {"ped_flu_reported": [{"cwk": 24}], "weeks": []}
+        body = json.dumps(expected).encode("utf-8")
+        response = FakeResponse(
+            body=body,
+            url=flushot.FLUVIEW_PHASE4_INIT_URL,
+            headers={"Content-Type": "application/json"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            result = flushot.fetch_fluview_phase4_init()
+
+        self.assertEqual(expected, result)
+        self.assertEqual("GET", opener.request.get_method())
+        self.assertEqual(flushot.FLUVIEW_PHASE4_INIT_URL, opener.request.full_url)
+        self.assertIsNone(opener.request.data)
+
+    def test_fetch_fluview_phase2_region_data_uses_reviewed_post_body(self):
+        expected = {"mmwr": [], "WHO_Virus_Counts_Summary_Cumulative": {}}
+        body = json.dumps(expected).encode("utf-8")
+        response = FakeResponse(
+            body=body,
+            url=flushot.FLUVIEW_PHASE2_DATA_URL,
+            headers={"Content-Type": "application/json; charset=UTF-8"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            result = flushot.fetch_fluview_phase2_region_data(65, 3)
+
+        self.assertEqual(expected, result)
+        self.assertEqual("POST", opener.request.get_method())
+        self.assertEqual(flushot.FLUVIEW_PHASE2_DATA_URL, opener.request.full_url)
+        self.assertEqual("application/json", opener.request.get_header("Content-type"))
+        self.assertEqual(
+            b'{"AppVersion":"Public","RegionID":3,"RegionTypeID":1,"SeasonID":65}',
+            opener.request.data,
+        )
+
+    def test_fetch_fluview_phase2_line_csv_uses_reviewed_post_body(self):
+        expected = "YEAR,WEEK,NUM. OF PROVIDERS\n2026,24,270\n"
+        body = expected.encode("utf-8")
+        response = FakeResponse(
+            body=body,
+            url=flushot.FLUVIEW_PHASE2_LINE_CSV_URL,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            result = flushot.fetch_fluview_phase2_line_csv(65, 3)
+
+        self.assertEqual(expected, result)
+        self.assertEqual("POST", opener.request.get_method())
+        self.assertEqual(flushot.FLUVIEW_PHASE2_LINE_CSV_URL, opener.request.full_url)
+        self.assertEqual("application/json", opener.request.get_header("Content-type"))
+        self.assertEqual(
+            b'{"AppVersion":"Public","DatasourceDT":[{"ID":1,"Name":"ILINet"}],'
+            b'"RegionTypeId":1,"SeasonsDT":[{"ID":65,"Name":"65"}],'
+            b'"SubRegionsDT":[{"ID":3,"Name":"3"}]}',
+            opener.request.data,
+        )
+
+    def test_fluview_post_transports_reject_invalid_identifiers_before_network(self):
+        invalid_seasons = (True, 0, -1, "65", 1.5)
+        invalid_regions = (False, 0, 11, -1, "3", 1.5)
+
+        for function in (
+            flushot.fetch_fluview_phase2_region_data,
+            flushot.fetch_fluview_phase2_line_csv,
+        ):
+            for season_id in invalid_seasons:
+                with self.subTest(function=function.__name__, season_id=season_id):
+                    with patch("flushot.build_opener") as build_opener:
+                        with self.assertRaisesRegex(ValueError, "season identifier"):
+                            function(season_id, 3)
+                    build_opener.assert_not_called()
+
+            for region_id in invalid_regions:
+                with self.subTest(function=function.__name__, region_id=region_id):
+                    with patch("flushot.build_opener") as build_opener:
+                        with self.assertRaisesRegex(ValueError, "HHS region identifier"):
+                            function(65, region_id)
+                    build_opener.assert_not_called()
+
+    def test_fluview_json_transport_requires_exact_final_url_before_body(self):
+        response = FakeResponse(
+            body=b'{"private":"ignored"}',
+            url="https://gis.cdc.gov/grasp/flu2/other",
+            headers={"Content-Type": "application/json"},
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with self.assertRaisesRegex(ValueError, "exact requested URL"):
+                flushot.fetch_fluview_phase2_init()
+
+        self.assertEqual(0, response.read_calls)
+
+    def test_fluview_json_transport_rejects_unreviewed_media_before_body(self):
+        headers_cases = (
+            ({}, "declare a JSON Content-Type"),
+            ({"Content-Type": "text/html"}, "must be application/json"),
+            (
+                {"Content-Type": "application/json; charset=iso-8859-1"},
+                "must use UTF-8",
+            ),
+            (
+                {"Content-Type": "application/json; profile=private"},
+                "unreviewed parameters",
+            ),
+        )
+
+        for headers, message in headers_cases:
+            response = FakeResponse(
+                body=b'{"private":"ignored"}',
+                url=flushot.FLUVIEW_PHASE2_INIT_URL,
+                headers=headers,
+            )
+            opener = FakeOpener(response)
+
+            with self.subTest(headers=headers):
+                with patch("flushot.build_opener", return_value=opener):
+                    with self.assertRaisesRegex(ValueError, message):
+                        flushot.fetch_fluview_phase2_init()
+                self.assertEqual(0, response.read_calls)
+
+        duplicate_headers = Message()
+        duplicate_headers["Content-Type"] = "application/json"
+        duplicate_headers["Content-Type"] = "application/json"
+        response = FakeResponse(
+            body=b'{"private":"ignored"}',
+            url=flushot.FLUVIEW_PHASE2_INIT_URL,
+            headers=duplicate_headers,
+        )
+        opener = FakeOpener(response)
+
+        with patch("flushot.build_opener", return_value=opener):
+            with self.assertRaisesRegex(ValueError, "exactly one Content-Type"):
+                flushot.fetch_fluview_phase2_init()
+        self.assertEqual(0, response.read_calls)
+
+    def test_fluview_csv_transport_requires_octet_stream_before_body(self):
+        for content_type in (
+            None,
+            "text/csv",
+            "application/json",
+            "application/octet-stream; charset=utf-8",
+        ):
+            headers = {} if content_type is None else {"Content-Type": content_type}
+            response = FakeResponse(
+                body=b"private,ignored\n",
+                url=flushot.FLUVIEW_PHASE2_LINE_CSV_URL,
+                headers=headers,
+            )
+            opener = FakeOpener(response)
+
+            with self.subTest(content_type=content_type):
+                with patch("flushot.build_opener", return_value=opener):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        "application/octet-stream",
+                    ):
+                        flushot.fetch_fluview_phase2_line_csv(65, 3)
+                self.assertEqual(0, response.read_calls)
+
+    def test_fluview_json_transport_rejects_malformed_or_non_object_json(self):
+        for body, message in (
+            (b'{"private":', "valid JSON"),
+            (b"[]", "JSON object"),
+            (b"null", "JSON object"),
+        ):
+            response = FakeResponse(
+                body=body,
+                url=flushot.FLUVIEW_PHASE2_INIT_URL,
+                headers={"Content-Type": "application/json"},
+            )
+            opener = FakeOpener(response)
+
+            with self.subTest(body=body):
+                with patch("flushot.build_opener", return_value=opener):
+                    with self.assertRaisesRegex(ValueError, message) as error:
+                        flushot.fetch_fluview_phase2_init()
+                self.assertNotIn("private", str(error.exception))
+                self.assertGreater(response.read_calls, 0)
+
     def test_fetch_timeout_rejects_invalid_or_out_of_range_values(self):
         self.assertEqual(30, flushot.fetch_timeout(""))
         self.assertEqual(30, flushot.fetch_timeout("not-a-timeout"))

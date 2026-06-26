@@ -1,5 +1,75 @@
 # Changes
 
+## 2026-06-26 14:46 PDT - P1 - Add bounded FluView transports
+
+### Summary
+
+Added the first production stage for issue #24: source-specific FluView transport
+functions with fixed request and response authority. The retired
+legacy default and historical schema remain unchanged.
+
+### Work completed
+
+- Added fixed phase 2 and phase 4 initialization JSON GETs.
+- Added fixed HHS-region phase 2 JSON and ILINet CSV POSTs.
+- Added positive season and HHS region 1 through 10 validation before network
+  construction.
+- Added exact final-URL, reviewed media-type, identity encoding, bounded byte,
+  strict UTF-8, deterministic JSON body, and JSON-object-root enforcement.
+- Added mutation-sensitive baseline and synchronized maintenance guidance.
+
+### Threads
+
+- None; implementation followed the merged issue #24 source map directly.
+
+### Files changed
+
+- `flushot.py` — dedicated source transports and shared narrow validators.
+- `tests/test_flushot.py` — request, response, identifier, media, and JSON
+  regressions.
+- `scripts/check-baseline.sh` — durable source, test, plan, and guidance
+  contracts.
+- `AGENTS.md`, `README.md`, `SECURITY.md`, and `VISION.md` — maintained source
+  transport boundaries and roadmap.
+- `docs/plans/2026-06-26-fluview-source-transports-design.md` — design record.
+- `docs/plans/2026-06-26-fluview-source-transports.md` — implementation record.
+
+### Validation
+
+- RED focused suite — nine tests errored on missing source APIs.
+- RED CSV parameter regression — accepted an unreviewed media parameter.
+- RED JSON parameter regression — accepted an unrelated `profile` parameter.
+- GREEN focused/full suites — all 78 tests passed.
+- Live source smoke — all four functions returned the expected official source
+  structures; phase 2 had 38 MMWR rows, the CSV was 2,583 bytes, and phase 4
+  had 5,740 weekly mortality entries.
+- `make check` — passed all 78 tests and specialized transport boundaries.
+- The full gate exposed a pre-existing fetch-port checker that counted
+  `build_opener.assert_not_called()` globally; it now scopes that proof to the
+  named port regression so independent pre-network tests remain valid.
+- A helper-ownership rename initially doubled private underscores; the baseline
+  rejected the source-contract mismatch before the typo was corrected.
+- Repository-root and absolute-Makefile verification from `/tmp` passed.
+- Ten isolated hostile URL, final-response, request-body, identifier, media,
+  JSON-root, JSON-parameter, legacy-default, guidance, and plan mutations were
+  all rejected.
+- In-memory Python compilation, shell syntax, current-tree gitleaks, and
+  `git diff --check` passed.
+
+### Bugs / findings
+
+- P1 live generation remains unavailable until source fixtures, nested
+  decoding, a complete `v2` schema, joining, and publication are implemented.
+
+### Blockers
+
+- None for this transport stage.
+
+### Next action
+
+- Record minimized official fixtures and implement validated phase 2 metadata
+  decoding without changing the default command.
+
 ## 2026-06-26 14:42 PDT - P1 - Map current FluView sources
 
 ### Summary

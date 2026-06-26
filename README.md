@@ -59,6 +59,13 @@ The research confirms that the historical `NUM_JURIS`, combined no-subtype,
 and regional pediatric-death fields cannot be reproduced truthfully, so the
 replacement requires an explicit `v2` schema rather than silent coercion.
 
+The first migration stage now exposes source-specific FluView transport
+functions for the two reviewed initialization JSON feeds, HHS-region phase 2
+JSON, and the ILINet CSV export. They enforce exact URLs and methods, bounded
+identity responses, strict UTF-8, reviewed media types, deterministic POST
+bodies, JSON-object roots, and HHS region identifiers 1 through 10. These
+functions do not change the legacy command or publish a partial `v2` schema.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:

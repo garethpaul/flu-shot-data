@@ -20,8 +20,24 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 CDC_FLU_URL = "https://www.cdc.gov/flu/weekly/"
+FLUVIEW_PHASE2_INIT_URL = (
+    "https://gis.cdc.gov/grasp/flu2/GetPhase02InitApp?appVersion=Public"
+)
+FLUVIEW_PHASE2_DATA_URL = (
+    "https://gis.cdc.gov/grasp/flu2/PostPhase02WHOGetData"
+)
+FLUVIEW_PHASE2_LINE_CSV_URL = (
+    "https://gis.cdc.gov/grasp/flu2/PostPhase02LineChartDataDownload"
+)
+FLUVIEW_PHASE4_INIT_URL = (
+    "https://gis.cdc.gov/grasp/flu4/GetPhase04InitApp?appVersion=Public"
+)
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 READ_CHUNK_BYTES = 64 * 1024
+USER_AGENT = (
+    "Mozilla/5.0 (compatible; flu-shot-data/1.0; "
+    "+https://github.com/garethpaul/flu-shot-data)"
+)
 
 HEADERS = [
     "WEEK_NUM",
@@ -194,6 +210,61 @@ def validate_html_content_type(headers) -> None:
         raise ValueError("CDC response Content-Type must use UTF-8.")
 
 
+def _validate_fluview_content_type(headers, expected_media_type: str) -> None:
+    get_all = getattr(headers, "get_all", None)
+    if callable(get_all):
+        content_types = get_all("Content-Type", [])
+    else:
+        content_type = headers.get("Content-Type")
+        content_types = [] if content_type is None else [content_type]
+
+    if len(content_types) > 1:
+        raise ValueError("CDC response must declare exactly one Content-Type.")
+
+    content_type = content_types[0] if content_types else None
+    if expected_media_type == "application/json" and (
+        not isinstance(content_type, str) or not content_type.strip()
+    ):
+        raise ValueError("CDC response must declare a JSON Content-Type.")
+    if not isinstance(content_type, str) or not content_type.strip():
+        raise ValueError(
+            f"CDC response Content-Type must be {expected_media_type}."
+        )
+
+    message = Message()
+    try:
+        message["Content-Type"] = content_type
+        media_type = message.get_content_type().lower()
+        parameters = message.get_params()[1:]
+    except (TypeError, ValueError) as error:
+        raise ValueError("CDC response has an invalid Content-Type.") from error
+
+    if media_type != expected_media_type:
+        raise ValueError(
+            f"CDC response Content-Type must be {expected_media_type}."
+        )
+
+    if expected_media_type == "application/json":
+        charset_parameters = [
+            value for name, value in parameters if name.lower() == "charset"
+        ]
+        if any(name.lower() != "charset" for name, _ in parameters):
+            raise ValueError(
+                "CDC response JSON Content-Type must not include unreviewed parameters."
+            )
+        if len(charset_parameters) > 1:
+            raise ValueError(
+                "CDC response Content-Type must declare at most one charset parameter."
+            )
+        charset = message.get_content_charset()
+        if charset is not None and charset.lower() not in {"utf-8", "utf8"}:
+            raise ValueError("CDC response Content-Type must use UTF-8.")
+    elif parameters:
+        raise ValueError(
+            "CDC response application/octet-stream Content-Type must not include parameters."
+        )
+
+
 def validate_content_encoding(headers) -> None:
     get_all = getattr(headers, "get_all", None)
     if callable(get_all):
@@ -269,6 +340,144 @@ def decode_html_bytes(body: bytes) -> str:
         raise ValueError("CDC response body must be valid UTF-8.") from None
 
 
+def _validate_positive_season_id(season_id: int) -> int:
+    if type(season_id) is not int or season_id < 1:
+        raise ValueError("FluView season identifier must be a positive integer.")
+    return season_id
+
+
+def _validate_hhs_region_id(region_id: int) -> int:
+    if type(region_id) is not int or not 1 <= region_id <= 10:
+        raise ValueError("FluView HHS region identifier must be between 1 and 10.")
+    return region_id
+
+
+def _encode_json_request(payload: dict) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("ascii")
+
+
+def _read_fluview_response(
+    request: Request,
+    expected_url: str,
+    expected_media_type: str,
+    timeout: int,
+    max_bytes: int,
+) -> bytes:
+    opener = build_opener(CDCNoRedirectHandler())
+    with opener.open(request, timeout=fetch_timeout(timeout)) as response:
+        validate_response_status(response)
+        if response.geturl() != expected_url:
+            raise ValueError("CDC response final URL must match the exact requested URL.")
+        _validate_fluview_content_type(response.headers, expected_media_type)
+        validate_content_encoding(response.headers)
+        return read_response_bytes(response, max_bytes)
+
+
+def _decode_json_object(body: bytes) -> dict:
+    text = decode_html_bytes(body)
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        raise ValueError("CDC response body must be valid JSON.") from None
+    if not isinstance(value, dict):
+        raise ValueError("CDC response JSON root must be a JSON object.")
+    return value
+
+
+def _fluview_request(
+    url: str,
+    payload: dict | None = None,
+) -> Request:
+    headers = {"User-Agent": USER_AGENT}
+    data = None
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+        data = _encode_json_request(payload)
+    return Request(url, data=data, headers=headers)
+
+
+def fetch_fluview_phase2_init(
+    timeout: int = 30,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> dict:
+    body = _read_fluview_response(
+        _fluview_request(FLUVIEW_PHASE2_INIT_URL),
+        FLUVIEW_PHASE2_INIT_URL,
+        "application/json",
+        timeout,
+        max_bytes,
+    )
+    return _decode_json_object(body)
+
+
+def fetch_fluview_phase2_region_data(
+    season_id: int,
+    region_id: int,
+    timeout: int = 30,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> dict:
+    season_id = _validate_positive_season_id(season_id)
+    region_id = _validate_hhs_region_id(region_id)
+    payload = {
+        "AppVersion": "Public",
+        "SeasonID": season_id,
+        "RegionTypeID": 1,
+        "RegionID": region_id,
+    }
+    body = _read_fluview_response(
+        _fluview_request(FLUVIEW_PHASE2_DATA_URL, payload),
+        FLUVIEW_PHASE2_DATA_URL,
+        "application/json",
+        timeout,
+        max_bytes,
+    )
+    return _decode_json_object(body)
+
+
+def fetch_fluview_phase2_line_csv(
+    season_id: int,
+    region_id: int,
+    timeout: int = 30,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> str:
+    season_id = _validate_positive_season_id(season_id)
+    region_id = _validate_hhs_region_id(region_id)
+    payload = {
+        "AppVersion": "Public",
+        "DatasourceDT": [{"ID": 1, "Name": "ILINet"}],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [{"ID": region_id, "Name": str(region_id)}],
+        "SeasonsDT": [{"ID": season_id, "Name": str(season_id)}],
+    }
+    body = _read_fluview_response(
+        _fluview_request(FLUVIEW_PHASE2_LINE_CSV_URL, payload),
+        FLUVIEW_PHASE2_LINE_CSV_URL,
+        "application/octet-stream",
+        timeout,
+        max_bytes,
+    )
+    return decode_html_bytes(body)
+
+
+def fetch_fluview_phase4_init(
+    timeout: int = 30,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> dict:
+    body = _read_fluview_response(
+        _fluview_request(FLUVIEW_PHASE4_INIT_URL),
+        FLUVIEW_PHASE4_INIT_URL,
+        "application/json",
+        timeout,
+        max_bytes,
+    )
+    return _decode_json_object(body)
+
+
 def fetch_html(
     url: str = CDC_FLU_URL,
     timeout: int = 30,
@@ -278,12 +487,7 @@ def fetch_html(
     timeout_seconds = fetch_timeout(timeout)
     request = Request(
         fetch_url,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (compatible; flu-shot-data/1.0; "
-                "+https://github.com/garethpaul/flu-shot-data)"
-            )
-        },
+        headers={"User-Agent": USER_AGENT},
     )
     opener = build_opener(CDCNoRedirectHandler())
     with opener.open(request, timeout=timeout_seconds) as response:

@@ -47,6 +47,8 @@ CDC weekly influenza summary table into CSV and JSON records.
 - Keep issue #24's reviewed FluView JSON/CSV endpoints behind source-specific
   method, path, query, request-body, media-type, and size validation; do not
   loosen the historical HTML fetcher globally.
+- Keep each source-specific FluView transport bound to its exact reviewed URL,
+  method, deterministic body, media type, final URL, and identifier range.
 - Do not substitute provider counts for legacy jurisdiction counts or copy
   national pediatric mortality into HHS-region records.
 - Reject embedded credentials in live fetch URLs before opening network requests.
