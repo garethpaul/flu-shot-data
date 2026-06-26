@@ -93,6 +93,8 @@ Next priorities:
   fixtures before changing the default command
 - Keep the completed source-specific FluView transport stage separate from
   schema decoding and publication so the historical default remains unchanged
+- Build later joins only from validated FluView phase 2 metadata with recorded
+  official fixture provenance
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers

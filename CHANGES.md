@@ -1,5 +1,70 @@
 # Changes
 
+## 2026-06-26 14:52 PDT - P1 - Normalize FluView phase 2 metadata
+
+### Summary
+
+Recorded a minimized official phase 2 initialization fixture with exact
+provenance and added strict order-independent metadata normalization for later
+issue #24 joins.
+
+### Work completed
+
+- Recorded two seasons, four representative MMWR rows, all ten HHS regions,
+  both lab types, and all twelve current virus categories from the exact
+  357,473-byte official response.
+- Added current enabled season and latest current-season MMWR selection without
+  trusting array order or season range fields.
+- Added duplicate, integer, string, date, week/year, region completeness,
+  canonical name, lab catalog, and virus relationship validation.
+- Added mutation-sensitive fixture, decoder, regression, plan, and guidance
+  contracts.
+
+### Threads
+
+- None; this stage follows the merged source map and bounded transport work.
+
+### Files changed
+
+- `tests/fixtures/fluview_phase2_init_2026-06-26.json` — minimized official
+  fixture and provenance.
+- `flushot.py` — validated FluView phase 2 metadata normalization.
+- `tests/test_flushot.py` — fixture, happy-path, order, duplicate, metadata,
+  and catalog regressions.
+- `scripts/check-baseline.sh` — durable provenance and decoder contracts.
+- `AGENTS.md`, `README.md`, `SECURITY.md`, and `VISION.md` — maintained decoder
+  ownership and roadmap.
+- `docs/plans/2026-06-26-fluview-phase2-metadata-design.md` — design record.
+- `docs/plans/2026-06-26-fluview-phase2-metadata.md` — implementation record.
+
+### Validation
+
+- RED focused suite — 37 cases errored on the missing decoder.
+- GREEN focused/full suites — all 85 tests passed.
+- Live fetch-to-decoder smoke — normalized season 2025-26, week 24 ending
+  2026-06-20, ten HHS regions, two lab types, and twelve virus categories.
+- Repository-root and absolute-Makefile `make check` from `/tmp` — passed all
+  85 tests and specialized transport/fixture contracts.
+- Ten isolated hostile provenance, fixture completeness, season/week selection,
+  duplicate, date, region, relationship, guidance, and plan mutations — all
+  rejected.
+- JSON syntax, in-memory Python compilation, shell syntax, current-tree
+  gitleaks, and `git diff --check` — passed with no findings.
+
+### Bugs / findings
+
+- P1 live generation remains unavailable until regional response fixtures and
+  decoding, a complete `v2` schema, source joining, and publication exist.
+
+### Blockers
+
+- None for this metadata stage.
+
+### Next action
+
+- Record minimized regional phase 2 fixtures and decode the declared nested
+  data structure without changing the default command.
+
 ## 2026-06-26 14:46 PDT - P1 - Add bounded FluView transports
 
 ### Summary
