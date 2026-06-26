@@ -17,6 +17,8 @@ The current focus is:
 
 Priority:
 
+- Replace the retired single-page CDC source through issue #24 using stable
+  official FluView data products and an explicitly versioned schema
 - Preserve the CDC weekly-summary extraction logic
 - Keep CSV and JSON output schemas visible
 - Avoid committing generated data unless intentionally versioned
@@ -84,7 +86,7 @@ Current baseline:
 
 Next priorities:
 
-- Validate the parser against the current live CDC page before publishing generated data
+- Complete issue #24 before publishing current generated data
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers
