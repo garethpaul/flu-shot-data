@@ -53,6 +53,11 @@ retired before June 26, 2026. The current FluView report splits the legacy
 is temporarily unavailable rather than silently emitting incomplete or stale
 records. Track the source migration in
 [#24](https://github.com/garethpaul/flu-shot-data/issues/24).
+Official FluView JSON and CSV endpoints now have a reviewed source map in
+[`docs/plans/2026-06-26-cdc-fluview-source-provenance.md`](docs/plans/2026-06-26-cdc-fluview-source-provenance.md).
+The research confirms that the historical `NUM_JURIS`, combined no-subtype,
+and regional pediatric-death fields cannot be reproduced truthfully, so the
+replacement requires an explicit `v2` schema rather than silent coercion.
 
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the

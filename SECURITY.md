@@ -34,6 +34,9 @@ Helpful reports include:
   opened.
 - Fetch URLs should reject query strings or fragments unless a reviewed source
   migration changes the data provenance boundary.
+- Issue #24's reviewed FluView endpoints require source-specific query, POST
+  body, JSON, and CSV policies. Implement them as narrow adapters; do not relax
+  the historical HTML fetcher's global URL or response-metadata boundaries.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
