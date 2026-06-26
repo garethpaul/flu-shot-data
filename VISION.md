@@ -100,6 +100,8 @@ Next priorities:
   provenance
 - Join provider counts only from validated FluView ILINet CSV data and keep
   their meaning distinct from historical jurisdiction counts
+- Preserve validated FluView phase 4 mortality as national weekly and HHS
+  season-level data rather than inventing regional weekly deaths
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers

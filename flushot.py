@@ -1090,6 +1090,130 @@ def parse_fluview_phase2_region_data(payload: dict, metadata: dict) -> dict:
     }
 
 
+def parse_fluview_phase4_mortality(payload: dict, metadata: dict) -> dict:
+    if not isinstance(payload, dict) or not isinstance(metadata, dict):
+        raise ValueError("FluView phase 4 mortality and metadata must be objects.")
+    season_id = _require_positive_integer(metadata.get("season_id"), "season identifier")
+    current_week_id = _require_positive_integer(metadata.get("week_id"), "MMWR identifier")
+    current_week_number = metadata.get("week_number")
+    current_week_end = metadata.get("week_end")
+
+    seasons = _require_object_list(payload, "seasons")
+    matching_seasons = [row for row in seasons if row.get("seasonid") == season_id]
+    if len(matching_seasons) != 1:
+        raise ValueError("FluView phase 4 must contain the current season exactly once.")
+    season = matching_seasons[0]
+    if (
+        _require_nonempty_string(season.get("label"), "season label")
+        != metadata.get("season_label")
+        or season.get("map") != 1
+        or season.get("weekly") != 1
+    ):
+        raise ValueError("FluView phase 4 current season metadata does not match phase 2.")
+
+    weeks = {}
+    for row in _require_object_list(payload, "weeks"):
+        if row.get("seasonid") != season_id:
+            continue
+        week_id = _require_positive_integer(row.get("mmwrid"), "MMWR identifier")
+        if week_id in weeks:
+            raise ValueError("FluView phase 4 contains a duplicate MMWR identifier.")
+        week_number = row.get("weeknumber")
+        year = row.get("year")
+        if type(week_number) is not int or not 1 <= week_number <= 53:
+            raise ValueError("FluView phase 4 week must be between 1 and 53.")
+        if type(year) is not int or not 1900 <= year <= 9999:
+            raise ValueError("FluView phase 4 year must be a four-digit integer.")
+        if row.get("label") != f"{year}-{week_number:02d}":
+            raise ValueError("FluView phase 4 week label must match year and week.")
+        weeks[week_id] = {"yearweek": year * 100 + week_number, "week_number": week_number}
+    if current_week_id not in weeks or weeks[current_week_id]["week_number"] != current_week_number:
+        raise ValueError("FluView phase 4 must contain the current report week.")
+
+    reported = _require_object_list(payload, "ped_flu_reported")
+    if len(reported) != 1 or reported[0].get("cwk") != current_week_number:
+        raise ValueError("FluView phase 4 report metadata must match the current week.")
+    if reported[0].get("cwk_date") != current_week_end:
+        raise ValueError("FluView phase 4 report date must match phase 2 metadata.")
+
+    expected_viruses = {1: "A", 2: "B", 3: "A/B Not Distinguished", 4: "A and B"}
+    viruses = {}
+    for row in _require_object_list(payload, "ped_flu_virus"):
+        virus_id = _require_positive_integer(row.get("id"), "pediatric virus identifier")
+        if virus_id in viruses:
+            raise ValueError("FluView phase 4 contains a duplicate virus identifier.")
+        viruses[virus_id] = _require_nonempty_string(row.get("label"), "pediatric virus label")
+    if viruses != expected_viruses:
+        raise ValueError("FluView phase 4 virus catalog does not match the reviewed categories.")
+
+    grouped = {week_id: {} for week_id in weeks}
+    for row in _require_object_list(payload, "ped_flu_weekly"):
+        week_id = row.get("mmwrid")
+        if week_id not in grouped:
+            continue
+        virus_id = row.get("virusid")
+        if type(virus_id) is not int or virus_id not in {0, 1, 2, 3, 4}:
+            raise ValueError("FluView phase 4 weekly virus identifier is invalid.")
+        if virus_id in grouped[week_id]:
+            raise ValueError("FluView phase 4 contains a duplicate weekly virus row.")
+        previous = _require_nonnegative_integer(row.get("pwk"), "previously reported deaths")
+        current = _require_nonnegative_integer(row.get("cwk"), "newly reported deaths")
+        total = _require_nonnegative_integer(row.get("allwks"), "total deaths")
+        if previous + current != total:
+            raise ValueError("FluView phase 4 weekly death counts must add to total.")
+        grouped[week_id][virus_id] = {
+            "previously_reported": previous,
+            "newly_reported": current,
+            "total": total,
+        }
+
+    national_weeks = {}
+    for week_id, virus_rows in grouped.items():
+        if set(virus_rows) != {0, 1, 2, 3, 4}:
+            raise ValueError("FluView phase 4 must contain five virus rows per week.")
+        for field in ("previously_reported", "newly_reported", "total"):
+            if virus_rows[0][field] != sum(virus_rows[item][field] for item in range(1, 5)):
+                raise ValueError("FluView phase 4 total virus row must equal category rows.")
+        if week_id > current_week_id:
+            if any(value for row in virus_rows.values() for value in row.values()):
+                raise ValueError("FluView phase 4 future placeholder weeks must be zero.")
+            continue
+        national_weeks[week_id] = {
+            **weeks[week_id],
+            "total_deaths": virus_rows[0]["total"],
+            "virus_deaths": {item: virus_rows[item] for item in range(1, 5)},
+        }
+
+    hhs_totals = {}
+    for row in _require_object_list(payload, "ped_flu_map"):
+        if row.get("seasonid") != season_id:
+            continue
+        region_id = _require_positive_integer(row.get("hhsid"), "HHS region identifier")
+        if region_id in hhs_totals:
+            raise ValueError("FluView phase 4 contains a duplicate HHS region.")
+        death_count = _require_nonnegative_integer(row.get("c"), "HHS death count")
+        rate = row.get("rate")
+        if type(rate) not in {int, float} or not math.isfinite(rate) or not 0 <= rate <= 100:
+            raise ValueError("FluView phase 4 HHS rate must be between zero and 100.")
+        hhs_totals[region_id] = {"death_count": death_count, "rate_per_million": rate}
+    if set(hhs_totals) != set(range(1, 11)):
+        raise ValueError("FluView phase 4 must contain HHS regions 1 through 10.")
+    season_total = sum(row["total_deaths"] for row in national_weeks.values())
+    if sum(row["death_count"] for row in hhs_totals.values()) != season_total:
+        raise ValueError("FluView phase 4 national and HHS season totals must match.")
+
+    return {
+        "season_id": season_id,
+        "current_week_id": current_week_id,
+        "current_week_number": current_week_number,
+        "current_week_end": current_week_end,
+        "virus_categories": viruses,
+        "national_weeks": dict(sorted(national_weeks.items())),
+        "hhs_season_totals": dict(sorted(hhs_totals.items())),
+        "season_total_deaths": season_total,
+    }
+
+
 def fetch_html(
     url: str = CDC_FLU_URL,
     timeout: int = 30,

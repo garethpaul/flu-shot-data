@@ -26,6 +26,9 @@ FLUVIEW_PHASE2_LINE_FIXTURE = (
     / "fixtures"
     / "fluview_phase2_line_region1_2026-06-26.json"
 )
+FLUVIEW_PHASE4_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "fluview_phase4_mortality_2026-06-26.json"
+)
 
 
 def same_resolved_path(left, right):
@@ -85,6 +88,9 @@ class FluShotParserTests(unittest.TestCase):
 
     def fluview_phase2_line_fixture(self):
         return json.loads(FLUVIEW_PHASE2_LINE_FIXTURE.read_text(encoding="utf-8"))
+
+    def fluview_phase4_fixture(self):
+        return json.loads(FLUVIEW_PHASE4_FIXTURE.read_text(encoding="utf-8"))
 
     def test_parse_records_from_fixture(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
@@ -920,6 +926,93 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual(flushot.FLUVIEW_PHASE2_INIT_URL, opener.request.full_url)
         self.assertIsNone(opener.request.data)
         self.assertEqual(45, opener.timeout)
+
+    def test_fluview_phase4_fixture_records_exact_source_provenance(self):
+        fixture = self.fluview_phase4_fixture()
+        self.assertEqual(
+            {
+                "source_url": flushot.FLUVIEW_PHASE4_INIT_URL,
+                "request_method": "GET",
+                "retrieved_at": "2026-06-26T22:20:01Z",
+                "response_content_type": "application/json; charset=utf-8",
+                "full_response_bytes": 1017561,
+                "full_response_sha256": "81d560217254765f707d65b949272c56c305bcd65d13fe001f172789a46543fe",
+                "minimization": "Retains only current-season fields consumed by parse_fluview_phase4_mortality.",
+            }, fixture["provenance"])
+
+    def test_parse_fluview_phase4_mortality_preserves_national_and_region_grains(self):
+        payload = self.fluview_phase4_fixture()["response"]
+        metadata = self.fluview_phase2_metadata()
+        original_payload = copy.deepcopy(payload)
+        original_metadata = copy.deepcopy(metadata)
+
+        mortality = flushot.parse_fluview_phase4_mortality(payload, metadata)
+
+        self.assertEqual(65, mortality["season_id"])
+        self.assertEqual(3364, mortality["current_week_id"])
+        self.assertEqual(24, mortality["current_week_number"])
+        self.assertEqual("2026-06-20", mortality["current_week_end"])
+        self.assertEqual(38, len(mortality["national_weeks"]))
+        self.assertEqual(184, mortality["season_total_deaths"])
+        week = mortality["national_weeks"][3342]
+        self.assertEqual(11, week["total_deaths"])
+        self.assertEqual(
+            {"previously_reported": 9, "newly_reported": 1, "total": 10},
+            week["virus_deaths"][1],
+        )
+        self.assertEqual(set(range(1, 11)), set(mortality["hhs_season_totals"]))
+        self.assertEqual(
+            {"death_count": 12, "rate_per_million": 3.8},
+            mortality["hhs_season_totals"][1],
+        )
+        self.assertEqual(payload, original_payload)
+        self.assertEqual(metadata, original_metadata)
+
+    def test_parse_fluview_phase4_mortality_ignores_collection_order(self):
+        payload = self.fluview_phase4_fixture()["response"]
+        metadata = self.fluview_phase2_metadata()
+        expected = flushot.parse_fluview_phase4_mortality(payload, metadata)
+        reordered = copy.deepcopy(payload)
+        for name in ("weeks", "ped_flu_virus", "ped_flu_weekly", "ped_flu_map"):
+            reordered[name].reverse()
+        self.assertEqual(expected, flushot.parse_fluview_phase4_mortality(reordered, metadata))
+
+    def test_parse_fluview_phase4_mortality_rejects_catalog_and_report_drift(self):
+        base = self.fluview_phase4_fixture()["response"]
+        mutations = []
+        missing = copy.deepcopy(base); del missing["ped_flu_weekly"]; mutations.append(missing)
+        duplicate_week = copy.deepcopy(base); duplicate_week["weeks"].append(copy.deepcopy(duplicate_week["weeks"][0])); mutations.append(duplicate_week)
+        wrong_virus = copy.deepcopy(base); wrong_virus["ped_flu_virus"][0]["label"] = "Other"; mutations.append(wrong_virus)
+        wrong_report = copy.deepcopy(base); wrong_report["ped_flu_reported"][0]["cwk"] = 23; mutations.append(wrong_report)
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase4_mortality(payload, self.fluview_phase2_metadata())
+
+    def test_parse_fluview_phase4_mortality_rejects_invalid_weekly_counts(self):
+        base = self.fluview_phase4_fixture()["response"]
+        mutations = []
+        missing_virus = copy.deepcopy(base); missing_virus["ped_flu_weekly"].pop(); mutations.append(missing_virus)
+        negative = copy.deepcopy(base); negative["ped_flu_weekly"][0]["pwk"] = -1; mutations.append(negative)
+        bad_sum = copy.deepcopy(base); bad_sum["ped_flu_weekly"][0]["allwks"] = 1; mutations.append(bad_sum)
+        bad_total = copy.deepcopy(base); bad_total["ped_flu_weekly"][0]["cwk"] = 1; bad_total["ped_flu_weekly"][0]["allwks"] = 1; mutations.append(bad_total)
+        future = copy.deepcopy(base); future["ped_flu_weekly"][-1]["cwk"] = 1; future["ped_flu_weekly"][-1]["allwks"] = 1; mutations.append(future)
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase4_mortality(payload, self.fluview_phase2_metadata())
+
+    def test_parse_fluview_phase4_mortality_rejects_invalid_hhs_totals(self):
+        base = self.fluview_phase4_fixture()["response"]
+        mutations = []
+        missing_region = copy.deepcopy(base); missing_region["ped_flu_map"].pop(); mutations.append(missing_region)
+        duplicate_region = copy.deepcopy(base); duplicate_region["ped_flu_map"].append(copy.deepcopy(duplicate_region["ped_flu_map"][0])); mutations.append(duplicate_region)
+        invalid_rate = copy.deepcopy(base); invalid_rate["ped_flu_map"][0]["rate"] = True; mutations.append(invalid_rate)
+        mismatched_total = copy.deepcopy(base); mismatched_total["ped_flu_map"][0]["c"] += 1; mutations.append(mismatched_total)
+        for payload in mutations:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase4_mortality(payload, self.fluview_phase2_metadata())
 
     def test_fetch_fluview_phase4_init_uses_exact_get_and_returns_json_object(self):
         expected = {"ped_flu_reported": [{"cwk": 24}], "weeks": []}

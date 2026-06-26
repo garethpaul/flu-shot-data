@@ -51,6 +51,9 @@ Helpful reports include:
   authority. Require the exact reviewed envelope, unique yearweeks, strict
   decimal text, reserved-column emptiness, age-total arithmetic, positive
   patient/provider counts, and bounded percentage precision.
+- Keep validated FluView phase 4 mortality grain-separated. Require complete
+  weekly virus groups, zero future placeholders, ten HHS season rows, and equal
+  national/HHS totals before downstream use.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
