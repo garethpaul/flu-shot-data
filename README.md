@@ -93,6 +93,14 @@ retired `NUM_JURIS` field, and no cross-source join is implied.
 as national weekly virus counts plus separate HHS season totals. It verifies
 their shared season total and never copies national deaths into regional weeks.
 
+`build_fluview_v2_dataset()` now assembles a deterministic FluView v2 dataset
+with `schema_version: 2` from those validated sources. It fails closed unless
+all ten HHS regions and every regional week join exactly, duplicated ILI
+metrics agree, and mortality covers the regional weeks. Laboratory virus
+categories and pediatric-mortality categories remain separate namespaces, and
+national weekly mortality remains separate from HHS season totals. This pure
+builder does not change the legacy default command or publish files yet.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:

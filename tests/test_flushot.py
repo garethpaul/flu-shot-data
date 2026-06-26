@@ -29,6 +29,11 @@ FLUVIEW_PHASE2_LINE_FIXTURE = (
 FLUVIEW_PHASE4_FIXTURE = (
     Path(__file__).parent / "fixtures" / "fluview_phase4_mortality_2026-06-26.json"
 )
+FLUVIEW_ALL_REGION_LINES_FIXTURE = (
+    Path(__file__).parent
+    / "fixtures"
+    / "fluview_phase2_line_all_regions_2026-06-26.json"
+)
 
 
 def same_resolved_path(left, right):
@@ -91,6 +96,25 @@ class FluShotParserTests(unittest.TestCase):
 
     def fluview_phase4_fixture(self):
         return json.loads(FLUVIEW_PHASE4_FIXTURE.read_text(encoding="utf-8"))
+
+    def fluview_v2_sources(self):
+        metadata = self.fluview_phase2_metadata()
+        regional = flushot.parse_fluview_phase2_region_data(
+            self.fluview_phase2_region_fixture()["response"], metadata
+        )
+        line_fixture = json.loads(
+            FLUVIEW_ALL_REGION_LINES_FIXTURE.read_text(encoding="utf-8")
+        )
+        ilinet = {
+            item["region_id"]: flushot.parse_fluview_phase2_line_csv(
+                item["response_text"], metadata["season_id"], item["region_id"]
+            )
+            for item in line_fixture["regions"]
+        }
+        mortality = flushot.parse_fluview_phase4_mortality(
+            self.fluview_phase4_fixture()["response"], metadata
+        )
+        return metadata, regional, ilinet, mortality
 
     def test_parse_records_from_fixture(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
@@ -1214,6 +1238,7 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual(3364, regional_data["current_week_id"])
         self.assertEqual([3327, 3364], list(regional_data["weeks"]))
         current = regional_data["weeks"][3364]
+        self.assertEqual(202624, current["yearweek"])
         self.assertEqual(24, current["week_number"])
         self.assertEqual("2026-06-20", current["week_end"])
         self.assertEqual({1, 2}, set(current["labs"]))
@@ -1528,6 +1553,187 @@ class FluShotParserTests(unittest.TestCase):
                         season_id,
                         region_id,
                     )
+
+    def test_build_fluview_v2_dataset_emits_truthful_versioned_schema(self):
+        metadata, regional, ilinet, mortality = self.fluview_v2_sources()
+        originals = copy.deepcopy((metadata, regional, ilinet, mortality))
+
+        dataset = flushot.build_fluview_v2_dataset(
+            metadata, regional, ilinet, mortality
+        )
+        json.dumps(dataset)
+
+        self.assertEqual(2, dataset["schema_version"])
+        self.assertEqual(
+            {
+                "schema_version",
+                "season",
+                "laboratory_virus_categories",
+                "regional_weekly",
+                "pediatric_mortality",
+            },
+            set(dataset),
+        )
+        self.assertEqual(
+            {
+                "id": 65,
+                "label": "2025-26",
+                "current_week": {
+                    "mmwr_id": 3364,
+                    "yearweek": 202624,
+                    "week_number": 24,
+                    "week_end": "2026-06-20",
+                },
+            },
+            dataset["season"],
+        )
+        self.assertEqual(12, len(dataset["laboratory_virus_categories"]))
+        self.assertEqual(20, len(dataset["regional_weekly"]))
+        current = next(
+            row for row in dataset["regional_weekly"]
+            if row["mmwr_id"] == 3364 and row["hhs_region_id"] == 1
+        )
+        self.assertEqual("Region 1", current["hhs_region_name"])
+        self.assertEqual(270, current["ili"]["provider_count"])
+        self.assertEqual(0.7318, current["ili"]["weighted_ili_percent"])
+        self.assertEqual(2.2, current["ili"]["baseline_percent"])
+        self.assertFalse(current["ili"]["is_elevated"])
+        self.assertEqual(
+            {"virus_id": 6, "weekly_positive_count": 1, "three_week_positive_count": 4,
+             "season_cumulative_positive_count": 889},
+            next(item for item in current["laboratory_surveillance"]["public_health"]["virus_counts"] if item["virus_id"] == 6),
+        )
+        self.assertEqual(
+            "national_weekly_and_hhs_season_totals",
+            dataset["pediatric_mortality"]["scope"],
+        )
+        self.assertEqual(184, dataset["pediatric_mortality"]["season_total_deaths"])
+        self.assertEqual(38, len(dataset["pediatric_mortality"]["national_weekly"]))
+        self.assertEqual(10, len(dataset["pediatric_mortality"]["hhs_season_totals"]))
+        self.assertEqual(
+            [
+                {"id": 1, "label": "A"},
+                {"id": 2, "label": "B"},
+                {"id": 3, "label": "A/B Not Distinguished"},
+                {"id": 4, "label": "A and B"},
+            ],
+            dataset["pediatric_mortality"]["virus_categories"],
+        )
+        serialized = json.dumps(dataset)
+        self.assertNotIn("ped_deaths", serialized)
+        self.assertNotIn("num_juris", serialized)
+        self.assertEqual(originals, (metadata, regional, ilinet, mortality))
+
+    def test_fluview_all_region_line_fixture_records_exact_provenance(self):
+        fixture = json.loads(
+            FLUVIEW_ALL_REGION_LINES_FIXTURE.read_text(encoding="utf-8")
+        )
+        self.assertEqual(flushot.FLUVIEW_PHASE2_LINE_CSV_URL, fixture["provenance"]["source_url"])
+        self.assertEqual("2026-06-26T22:24:21Z", fixture["provenance"]["retrieved_at"])
+        expected_hashes = {
+            1: (2583, "985493ce04d949f06ac66d846b9bf56e513711bf362c3c00b6f0241448115128"),
+            2: (2668, "41c6d063a4b2d816cf5394c229761d6c0799b27543ac09efc8756a54f7c872d9"),
+            3: (2628, "fbfbf91cbf92c7f1cba257c690bb062db7fe6b6442731b002023636b9a7de14f"),
+            4: (2738, "ce9f4b36460efdaa7360f96e01a069793adfe47cf072f76d9ea4fe78aea47f6d"),
+            5: (2649, "f67b40bfc689347a71268640e3bba0c8ddad4270323f141d06f406333e0624c2"),
+            6: (2576, "3ee7164c30bc84e1f5c021627f125ed67779c48d8364e7cef79d026536215f69"),
+            7: (2436, "a44ac814c8a7bfe37ab922e2319fecfd48508f052ad406672dbb272bfc40b1e8"),
+            8: (2518, "560844e5356963582a58f6591f77301fb1a0f202762f983f12d507d0cdf79b7a"),
+            9: (2733, "32bac37c510c628be318c60128ebe99d4fc063b82849e423a87ff741b0be6cb4"),
+            10: (2580, "5137935ad6fe09076a9e621fdf0403b51693a5645bee1898fd479e860f0e6b9a"),
+        }
+        self.assertEqual(
+            expected_hashes,
+            {
+                item["region_id"]: (
+                    item["full_response_bytes"], item["full_response_sha256"]
+                )
+                for item in fixture["regions"]
+            },
+        )
+        for item in fixture["regions"]:
+            self.assertEqual(
+                [{"ID": item["region_id"], "Name": str(item["region_id"])}],
+                item["request_body"]["SubRegionsDT"],
+            )
+
+    def test_build_fluview_v2_dataset_orders_records_and_categories(self):
+        metadata, regional, ilinet, mortality = self.fluview_v2_sources()
+        ilinet = dict(reversed(list(ilinet.items())))
+
+        dataset = flushot.build_fluview_v2_dataset(metadata, regional, ilinet, mortality)
+
+        identities = [
+            (row["mmwr_id"], row["hhs_region_id"])
+            for row in dataset["regional_weekly"]
+        ]
+        self.assertEqual(sorted(identities), identities)
+        self.assertEqual(
+            list(range(1, 13)),
+            [item["id"] for item in dataset["laboratory_virus_categories"]],
+        )
+
+    def test_build_fluview_v2_dataset_rejects_source_identity_and_coverage_drift(self):
+        sources = self.fluview_v2_sources()
+        mutations = []
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        regional["season_id"] = 64
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        mortality["current_week_id"] = 3363
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        ilinet.pop(10)
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        ilinet[1]["region_id"] = 2
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        ilinet[1]["weeks"].pop(202540)
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        mortality["national_weeks"].pop(3327)
+        mutations.append((metadata, regional, ilinet, mortality))
+
+        for args in mutations:
+            with self.subTest(args=args):
+                with self.assertRaises(ValueError):
+                    flushot.build_fluview_v2_dataset(*args)
+
+    def test_build_fluview_v2_dataset_rejects_ili_disagreement(self):
+        sources = self.fluview_v2_sources()
+        mutations = []
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        ilinet[1]["weeks"][202624]["weighted_ili"] = 9.9
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        regional["weeks"][3364]["labs"][2]["hhs_regions"][1]["baseline"] = 9.9
+        mutations.append((metadata, regional, ilinet, mortality))
+        metadata, regional, ilinet, mortality = copy.deepcopy(sources)
+        regional["weeks"][3364]["labs"][1]["hhs_regions"][1]["weekly_ili_data"] = False
+        mutations.append((metadata, regional, ilinet, mortality))
+
+        for args in mutations:
+            with self.subTest(args=args):
+                with self.assertRaises(ValueError):
+                    flushot.build_fluview_v2_dataset(*args)
+
+    def test_build_fluview_v2_dataset_rejects_malformed_metric_types(self):
+        metadata, regional, ilinet, mortality = self.fluview_v2_sources()
+        ilinet[1]["weeks"][202624]["weighted_ili"] = None
+
+        with self.assertRaises(ValueError):
+            flushot.build_fluview_v2_dataset(
+                metadata, regional, ilinet, mortality
+            )
+
+        metadata, regional, ilinet, mortality = self.fluview_v2_sources()
+        regional["weeks"][3364]["labs"][1]["hhs_regions"][1]["elevated"] = 0
+
+        with self.assertRaises(ValueError):
+            flushot.build_fluview_v2_dataset(
+                metadata, regional, ilinet, mortality
+            )
 
     def test_fluview_post_transports_reject_invalid_identifiers_before_network(self):
         invalid_seasons = (True, 0, -1, "65", 1.5)

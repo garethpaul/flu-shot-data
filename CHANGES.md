@@ -1,5 +1,59 @@
 # Changes
 
+## 2026-06-26 15:28 PDT - P1 - Build truthful FluView v2 dataset
+
+### Summary
+
+Added the first deterministic FluView v2 dataset contract and explicit
+fail-closed joins across all validated current FluView sources without changing
+the legacy default command or publishing partial files.
+
+### Work completed
+
+- Preserved each regional record's validated `yearweek` join key.
+- Recorded exact full-response provenance for all ten official ILINet region
+  exports while retaining the two fixture weeks shared by regional JSON.
+- Added `build_fluview_v2_dataset()` with `schema_version: 2`, exact
+  season/current-week identity, ten-region and week coverage, duplicated ILI
+  agreement, deterministic ordering, and non-mutation guarantees.
+- Kept public-health and clinical lab surveillance separate, used explicit
+  virus count-window names, and kept laboratory virus IDs in their own catalog.
+- Preserved pediatric mortality as national weekly records plus separate HHS
+  season totals with its own virus category namespace.
+- Added mutation-sensitive schema, provenance, ordering, coverage, metric,
+  boolean, guidance, and plan contracts.
+
+### Validation
+
+- RED regressions covered missing `yearweek`, the absent builder, and malformed
+  metric types escaping the intended validation boundary.
+- GREEN fixture suite — all 110 tests passed.
+- Live source smoke — built 380 regional weekly records, 38 national mortality
+  weeks, ten HHS season totals, and the verified 184-death season total for
+  current MMWR yearweek 202624.
+- `make check`, `make lint`, `make test`, `make build`, repository-root Make,
+  and absolute-Makefile verification from `/tmp` — passed.
+- Ten isolated hostile fixture, source, schema, test, plan, and guidance
+  mutations — all rejected.
+- JSON syntax, Python compilation, shell syntax, current-tree gitleaks, and
+  `git diff --check` — passed with no findings.
+
+### Bugs / findings
+
+- Phase 2 laboratory and phase 4 mortality sources reuse numeric virus IDs for
+  different meanings, so the FluView v2 dataset exposes separate catalogs.
+- All current regional and ILINet week/region combinations agree exactly on
+  weighted and unweighted ILI, allowing missing or divergent joins to fail.
+
+### Blockers
+
+- None for the dataset contract and join stage.
+
+### Next action
+
+- Design versioned publication and CLI wiring without changing the historical
+  default command.
+
 ## 2026-06-26 15:22 PDT - P1 - Decode phase 4 pediatric mortality
 
 - Recorded a 41,171-byte current-season fixture with exact provenance for the

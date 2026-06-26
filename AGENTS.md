@@ -64,6 +64,13 @@ CDC weekly influenza summary table into CSV and JSON records.
   never alias provider counts to legacy jurisdiction counts.
 - Keep validated FluView phase 4 mortality at its reported grains: national
   weekly deaths and separate HHS season totals; never fabricate regional weeks.
+- Preserve the FluView v2 dataset as a pure fail-closed join over validated
+  sources: require exact season/current-week identity, all ten regions, exact
+  yearweek coverage, matching duplicate ILI values and real boolean flags.
+- Keep laboratory virus categories separate from pediatric-mortality virus
+  categories, and preserve national weekly versus HHS season mortality grains.
+- Do not change the legacy default command when extending the FluView v2
+  dataset; versioned publication requires a separate reviewed stage.
 - Reject embedded credentials in live fetch URLs before opening network requests.
 - Reject query strings or fragments in live fetch URLs unless a reviewed source migration changes the provenance boundary.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.

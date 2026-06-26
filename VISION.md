@@ -102,6 +102,11 @@ Next priorities:
   their meaning distinct from historical jurisdiction counts
 - Preserve validated FluView phase 4 mortality as national weekly and HHS
   season-level data rather than inventing regional weekly deaths
+- Preserve the reviewed FluView v2 dataset contract: `schema_version: 2`, exact
+  ten-region/week joins, canonical ILINet visit/provider fields, separate lab
+  surveillance, separate virus namespaces, and grain-preserving mortality
+- Keep the legacy default unchanged until versioned publication wiring is
+  separately designed, tested, and reviewed
 - Keep expected CDC summary table headers visible when upstream markup changes
 - Keep optional summary subheading behavior covered by fixtures
 - Keep row-level skip behavior covered by fixtures when CDC repeats headers

@@ -957,7 +957,8 @@ def parse_fluview_phase2_region_data(payload: dict, metadata: dict) -> dict:
         year = week.get("year")
         if type(year) is not int or not 1900 <= year <= 9999:
             raise ValueError("FluView MMWR year must be a four-digit integer.")
-        if week.get("yearweek") != year * 100 + week_number:
+        yearweek = week.get("yearweek")
+        if yearweek != year * 100 + week_number:
             raise ValueError("FluView MMWR yearweek must match year and week number.")
         weekend = _require_nonempty_string(week.get("weekend"), "MMWR weekend")
         try:
@@ -967,6 +968,7 @@ def parse_fluview_phase2_region_data(payload: dict, metadata: dict) -> dict:
         if parsed_weekend.strftime("%Y-%m-%d") != weekend:
             raise ValueError("FluView MMWR weekend must be a valid ISO date.")
         weeks[week_id] = {
+            "yearweek": yearweek,
             "week_number": week_number,
             "week_end": weekend,
         }
@@ -1213,6 +1215,238 @@ def parse_fluview_phase4_mortality(payload: dict, metadata: dict) -> dict:
         "season_total_deaths": season_total,
     }
 
+
+def _v2_lab_surveillance(record: dict) -> dict:
+    return {
+        "percent_positive": record["percent_positive"],
+        "percent_a": record["percent_a"],
+        "percent_b": record["percent_b"],
+        "virus_counts": [
+            {
+                "virus_id": virus_id,
+                "weekly_positive_count": counts["current"],
+                "three_week_positive_count": counts["three_weeks"],
+                "season_cumulative_positive_count": counts["cumulative"],
+            }
+            for virus_id, counts in sorted(record["virus_counts"].items())
+        ],
+    }
+
+
+def _v2_metrics_match(left: dict, right: dict) -> bool:
+    numeric_fields = ("weighted_ili", "unweighted_ili", "baseline")
+    flag_fields = ("elevated", "weekly_ili_data", "insufficient")
+    return all(
+        type(left.get(field)) in {int, float}
+        and type(right.get(field)) in {int, float}
+        and math.isclose(left[field], right[field], rel_tol=0, abs_tol=1e-9)
+        for field in numeric_fields
+    ) and all(
+        type(left.get(field)) is bool
+        and type(right.get(field)) is bool
+        and left[field] == right[field]
+        for field in flag_fields
+    )
+
+
+def _v2_numbers_match(left, right) -> bool:
+    return (
+        type(left) in {int, float}
+        and type(right) in {int, float}
+        and math.isfinite(left)
+        and math.isfinite(right)
+        and math.isclose(left, right, rel_tol=0, abs_tol=1e-9)
+    )
+
+
+def build_fluview_v2_dataset(
+    metadata: dict,
+    regional_data: dict,
+    ilinet_by_region: dict,
+    mortality: dict,
+) -> dict:
+    if not all(isinstance(value, dict) for value in (
+        metadata, regional_data, ilinet_by_region, mortality
+    )):
+        raise ValueError("FluView v2 sources must be objects.")
+
+    season_id = _require_positive_integer(metadata.get("season_id"), "v2 season identifier")
+    current_week_id = _require_positive_integer(metadata.get("week_id"), "v2 MMWR identifier")
+    season_label = _require_nonempty_string(metadata.get("season_label"), "v2 season label")
+    hhs_regions = metadata.get("hhs_regions")
+    lab_types = metadata.get("lab_types")
+    viruses = metadata.get("viruses")
+    if not isinstance(hhs_regions, dict) or hhs_regions != {
+        region_id: f"Region {region_id}" for region_id in range(1, 11)
+    }:
+        raise ValueError("FluView v2 metadata must contain canonical HHS regions.")
+    if lab_types != {1: "Public Health Labs", 2: "Clinical Labs"}:
+        raise ValueError("FluView v2 metadata must contain reviewed lab types.")
+    if not isinstance(viruses, dict) or not viruses:
+        raise ValueError("FluView v2 metadata must contain virus categories.")
+
+    if regional_data.get("season_id") != season_id or regional_data.get("current_week_id") != current_week_id:
+        raise ValueError("FluView v2 regional source identity does not match metadata.")
+    regional_weeks = regional_data.get("weeks")
+    if not isinstance(regional_weeks, dict) or current_week_id not in regional_weeks:
+        raise ValueError("FluView v2 regional source must contain the current week.")
+    current_week = regional_weeks[current_week_id]
+    if (
+        current_week.get("week_number") != metadata.get("week_number")
+        or current_week.get("week_end") != metadata.get("week_end")
+    ):
+        raise ValueError("FluView v2 current regional week does not match metadata.")
+
+    if set(ilinet_by_region) != set(range(1, 11)):
+        raise ValueError("FluView v2 requires ILINet data for HHS regions 1 through 10.")
+    expected_yearweeks = {week.get("yearweek") for week in regional_weeks.values()}
+    if None in expected_yearweeks or len(expected_yearweeks) != len(regional_weeks):
+        raise ValueError("FluView v2 regional weeks must contain unique yearweek keys.")
+    for region_id, source in ilinet_by_region.items():
+        if (
+            not isinstance(source, dict)
+            or source.get("season_id") != season_id
+            or source.get("region_id") != region_id
+            or not isinstance(source.get("weeks"), dict)
+            or set(source["weeks"]) != expected_yearweeks
+        ):
+            raise ValueError("FluView v2 ILINet source identity or coverage is invalid.")
+
+    if mortality.get("season_id") != season_id or mortality.get("current_week_id") != current_week_id:
+        raise ValueError("FluView v2 mortality source identity does not match metadata.")
+    national_mortality = mortality.get("national_weeks")
+    hhs_mortality = mortality.get("hhs_season_totals")
+    mortality_viruses = mortality.get("virus_categories")
+    if (
+        not isinstance(national_mortality, dict)
+        or not set(regional_weeks).issubset(national_mortality)
+        or not isinstance(hhs_mortality, dict)
+        or set(hhs_mortality) != set(range(1, 11))
+        or not isinstance(mortality_viruses, dict)
+        or set(mortality_viruses) != {1, 2, 3, 4}
+    ):
+        raise ValueError("FluView v2 mortality coverage or catalogs are invalid.")
+
+    regional_weekly = []
+    for week_id, week in sorted(regional_weeks.items()):
+        yearweek = week.get("yearweek")
+        mortality_week = national_mortality[week_id]
+        if mortality_week.get("yearweek") != yearweek:
+            raise ValueError("FluView v2 mortality yearweek does not match regional data.")
+        labs = week.get("labs")
+        if not isinstance(labs, dict) or set(labs) != {1, 2}:
+            raise ValueError("FluView v2 regional weeks must contain both lab types.")
+        for region_id in range(1, 11):
+            public_health = labs[1].get("hhs_regions", {}).get(region_id)
+            clinical = labs[2].get("hhs_regions", {}).get(region_id)
+            if (
+                not isinstance(public_health, dict)
+                or not isinstance(clinical, dict)
+                or public_health.get("region_id") != region_id
+                or clinical.get("region_id") != region_id
+                or not _v2_metrics_match(public_health, clinical)
+            ):
+                raise ValueError("FluView v2 lab ILI metrics or region identity disagree.")
+            ilinet = ilinet_by_region[region_id]["weeks"].get(yearweek)
+            if not isinstance(ilinet, dict):
+                raise ValueError("FluView v2 ILINet week is missing.")
+            if not (
+                _v2_numbers_match(public_health.get("weighted_ili"), ilinet.get("weighted_ili"))
+                and _v2_numbers_match(public_health.get("unweighted_ili"), ilinet.get("unweighted_ili"))
+            ):
+                raise ValueError("FluView v2 ILINet and regional ILI metrics disagree.")
+            regional_weekly.append({
+                "mmwr_id": week_id,
+                "yearweek": yearweek,
+                "week_number": week["week_number"],
+                "week_end": week["week_end"],
+                "hhs_region_id": region_id,
+                "hhs_region_name": hhs_regions[region_id],
+                "ili": {
+                    "age_0_4_ili_visits": ilinet["age_0_4"],
+                    "age_5_24_ili_visits": ilinet["age_5_24"],
+                    "age_25_49_ili_visits": ilinet["age_25_49"],
+                    "age_50_64_ili_visits": ilinet["age_50_64"],
+                    "age_65_plus_ili_visits": ilinet["age_65_plus"],
+                    "total_ili_visits": ilinet["ili_total"],
+                    "total_patients": ilinet["total_patients"],
+                    "provider_count": ilinet["provider_count"],
+                    "unweighted_ili_percent": ilinet["unweighted_ili"],
+                    "weighted_ili_percent": ilinet["weighted_ili"],
+                    "baseline_percent": public_health["baseline"],
+                    "is_elevated": public_health["elevated"],
+                    "has_weekly_ili_data": public_health["weekly_ili_data"],
+                    "is_insufficient": public_health["insufficient"],
+                },
+                "laboratory_surveillance": {
+                    "public_health": _v2_lab_surveillance(public_health),
+                    "clinical": _v2_lab_surveillance(clinical),
+                },
+            })
+
+    laboratory_virus_categories = [
+        {
+            "id": virus_id,
+            "description": virus["description"],
+            "label": virus["label"],
+            "lab_type_id": virus["lab_type_id"],
+            "lab_type": lab_types[virus["lab_type_id"]],
+        }
+        for virus_id, virus in sorted(viruses.items())
+    ]
+    mortality_national = [
+        {
+            "mmwr_id": week_id,
+            "yearweek": week["yearweek"],
+            "week_number": week["week_number"],
+            "total_deaths": week["total_deaths"],
+            "virus_deaths": [
+                {
+                    "virus_id": virus_id,
+                    "previously_reported_deaths": counts["previously_reported"],
+                    "newly_reported_deaths": counts["newly_reported"],
+                    "total_deaths": counts["total"],
+                }
+                for virus_id, counts in sorted(week["virus_deaths"].items())
+            ],
+        }
+        for week_id, week in sorted(national_mortality.items())
+    ]
+    mortality_hhs = [
+        {
+            "hhs_region_id": region_id,
+            "hhs_region_name": hhs_regions[region_id],
+            "death_count": values["death_count"],
+            "rate_per_million": values["rate_per_million"],
+        }
+        for region_id, values in sorted(hhs_mortality.items())
+    ]
+
+    return {
+        "schema_version": 2,
+        "season": {
+            "id": season_id,
+            "label": season_label,
+            "current_week": {
+                "mmwr_id": current_week_id,
+                "yearweek": current_week["yearweek"],
+                "week_number": current_week["week_number"],
+                "week_end": current_week["week_end"],
+            },
+        },
+        "laboratory_virus_categories": laboratory_virus_categories,
+        "regional_weekly": regional_weekly,
+        "pediatric_mortality": {
+            "scope": "national_weekly_and_hhs_season_totals",
+            "virus_categories": [
+                {"id": virus_id, "label": label}
+                for virus_id, label in sorted(mortality_viruses.items())
+            ],
+            "national_weekly": mortality_national,
+            "hhs_season_totals": mortality_hhs,
+            "season_total_deaths": mortality["season_total_deaths"],
+        },
+    }
 
 def fetch_html(
     url: str = CDC_FLU_URL,
