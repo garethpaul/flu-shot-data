@@ -478,6 +478,177 @@ def fetch_fluview_phase4_init(
     return _decode_json_object(body)
 
 
+def _require_object_list(payload: dict, name: str) -> list[dict]:
+    value = payload.get(name)
+    if not isinstance(value, list) or any(
+        not isinstance(item, dict) for item in value
+    ):
+        raise ValueError(f"FluView {name} must be an array of objects.")
+    return value
+
+
+def _require_positive_integer(value, label: str) -> int:
+    if type(value) is not int or value < 1:
+        raise ValueError(f"FluView {label} must be a positive integer.")
+    return value
+
+
+def _require_nonempty_string(value, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"FluView {label} must be a non-empty string.")
+    return value.strip()
+
+
+def parse_fluview_phase2_metadata(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("FluView phase 2 metadata must be an object.")
+
+    seasons = _require_object_list(payload, "seasons")
+    mmwr_rows = _require_object_list(payload, "mmwr")
+    region_rows = _require_object_list(payload, "hhsregion")
+    lab_rows = _require_object_list(payload, "labtypes")
+    virus_rows = _require_object_list(payload, "viruslist")
+
+    season_labels = {}
+    enabled_season_ids = []
+    for season in seasons:
+        season_id = _require_positive_integer(
+            season.get("seasonid"),
+            "season identifier",
+        )
+        if season_id in season_labels:
+            raise ValueError("FluView metadata contains a duplicate season identifier.")
+        label = _require_nonempty_string(season.get("label"), "season label")
+        enabled = season.get("enabled")
+        if type(enabled) is not int or enabled not in {0, 1}:
+            raise ValueError("FluView season enabled flag must be zero or one.")
+        season_labels[season_id] = label
+        if enabled == 1:
+            enabled_season_ids.append(season_id)
+
+    if not enabled_season_ids:
+        raise ValueError("FluView metadata must contain an enabled season.")
+    current_season_id = max(enabled_season_ids)
+
+    seen_week_ids = set()
+    current_weeks = []
+    for week in mmwr_rows:
+        week_id = _require_positive_integer(week.get("mmwrid"), "MMWR identifier")
+        if week_id in seen_week_ids:
+            raise ValueError("FluView metadata contains a duplicate MMWR identifier.")
+        seen_week_ids.add(week_id)
+
+        season_id = _require_positive_integer(
+            week.get("seasonid"),
+            "MMWR season identifier",
+        )
+        week_number = week.get("weeknumber")
+        if type(week_number) is not int or not 1 <= week_number <= 53:
+            raise ValueError("FluView MMWR week number must be between 1 and 53.")
+        year = week.get("year")
+        if type(year) is not int or not 1900 <= year <= 9999:
+            raise ValueError("FluView MMWR year must be a four-digit integer.")
+        yearweek = week.get("yearweek")
+        if type(yearweek) is not int or yearweek != year * 100 + week_number:
+            raise ValueError("FluView MMWR yearweek must match year and week number.")
+        weekend = _require_nonempty_string(week.get("weekend"), "MMWR weekend")
+        try:
+            parsed_weekend = datetime.strptime(weekend, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("FluView MMWR weekend must be a valid ISO date.") from None
+        if parsed_weekend.strftime("%Y-%m-%d") != weekend:
+            raise ValueError("FluView MMWR weekend must be a valid ISO date.")
+
+        if season_id == current_season_id:
+            current_weeks.append(
+                {
+                    "week_id": week_id,
+                    "week_number": week_number,
+                    "week_end": weekend,
+                }
+            )
+
+    if not current_weeks:
+        raise ValueError("FluView metadata must contain a week for the current enabled season.")
+    current_week = max(current_weeks, key=lambda item: item["week_id"])
+
+    seen_region_ids = set()
+    active_regions = {}
+    for region in region_rows:
+        region_id = _require_positive_integer(
+            region.get("hhsregionid"),
+            "HHS region identifier",
+        )
+        if region_id in seen_region_ids:
+            raise ValueError("FluView metadata contains a duplicate HHS region identifier.")
+        seen_region_ids.add(region_id)
+        name = _require_nonempty_string(region.get("hhsregionname"), "HHS region name")
+        active = region.get("isactive")
+        if type(active) is not int or active not in {0, 1}:
+            raise ValueError("FluView HHS region active flag must be zero or one.")
+        if active == 1:
+            if name != f"Region {region_id}":
+                raise ValueError("FluView active HHS regions must use the canonical name.")
+            active_regions[region_id] = name
+
+    required_region_ids = set(range(1, 11))
+    if set(active_regions) != required_region_ids:
+        raise ValueError("FluView metadata must contain active HHS regions 1 through 10.")
+
+    lab_types = {}
+    for lab in lab_rows:
+        lab_type_id = _require_positive_integer(
+            lab.get("labtypeid"),
+            "lab type identifier",
+        )
+        if lab_type_id in lab_types:
+            raise ValueError("FluView metadata contains a duplicate lab type identifier.")
+        lab_types[lab_type_id] = _require_nonempty_string(
+            lab.get("labname"),
+            "lab type name",
+        )
+
+    if lab_types.get(1) != "Public Health Labs" or lab_types.get(2) != "Clinical Labs":
+        raise ValueError("FluView metadata must contain lab types 1 and 2.")
+
+    viruses = {}
+    for virus in virus_rows:
+        virus_id = _require_positive_integer(
+            virus.get("virusid"),
+            "virus identifier",
+        )
+        if virus_id in viruses:
+            raise ValueError("FluView metadata contains a duplicate virus identifier.")
+        description = _require_nonempty_string(
+            virus.get("description"),
+            "virus description",
+        )
+        label = _require_nonempty_string(virus.get("label"), "virus label")
+        lab_type_id = _require_positive_integer(
+            virus.get("labtypeid"),
+            "virus lab type identifier",
+        )
+        if lab_type_id not in lab_types:
+            raise ValueError("FluView virus metadata must reference a known lab type.")
+        viruses[virus_id] = {
+            "description": description,
+            "label": label,
+            "lab_type_id": lab_type_id,
+        }
+
+    if not viruses:
+        raise ValueError("FluView metadata must contain at least one virus category.")
+
+    return {
+        "season_id": current_season_id,
+        "season_label": season_labels[current_season_id],
+        **current_week,
+        "hhs_regions": dict(sorted(active_regions.items())),
+        "lab_types": dict(sorted(lab_types.items())),
+        "viruses": dict(sorted(viruses.items())),
+    }
+
+
 def fetch_html(
     url: str = CDC_FLU_URL,
     timeout: int = 30,

@@ -1,0 +1,195 @@
+{
+  "provenance": {
+    "source_url": "https://gis.cdc.gov/grasp/flu2/GetPhase02InitApp?appVersion=Public",
+    "request_method": "GET",
+    "retrieved_at": "2026-06-26T21:52:37Z",
+    "response_content_type": "application/json; charset=utf-8",
+    "full_response_bytes": 357473,
+    "full_response_sha256": "63ae6be2711dbe7ddd500f2d8b31f25170c6e128395021f11b353443a130aa56",
+    "minimization": "Retains only fields consumed by parse_fluview_phase2_metadata."
+  },
+  "response": {
+    "seasons": [
+      {
+        "seasonid": 65,
+        "enabled": 1,
+        "label": "2025-26"
+      },
+      {
+        "seasonid": 64,
+        "enabled": 1,
+        "label": "2024-25"
+      }
+    ],
+    "mmwr": [
+      {
+        "mmwrid": 3327,
+        "weekend": "2025-10-04",
+        "weeknumber": 40,
+        "year": 2025,
+        "yearweek": 202540,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3340,
+        "weekend": "2026-01-03",
+        "weeknumber": 53,
+        "year": 2025,
+        "yearweek": 202553,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3341,
+        "weekend": "2026-01-10",
+        "weeknumber": 1,
+        "year": 2026,
+        "yearweek": 202601,
+        "seasonid": 65
+      },
+      {
+        "mmwrid": 3364,
+        "weekend": "2026-06-20",
+        "weeknumber": 24,
+        "year": 2026,
+        "yearweek": 202624,
+        "seasonid": 65
+      }
+    ],
+    "hhsregion": [
+      {
+        "hhsregionid": 1,
+        "hhsregionname": "Region 1",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 2,
+        "hhsregionname": "Region 2",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 3,
+        "hhsregionname": "Region 3",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 4,
+        "hhsregionname": "Region 4",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 5,
+        "hhsregionname": "Region 5",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 6,
+        "hhsregionname": "Region 6",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 7,
+        "hhsregionname": "Region 7",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 8,
+        "hhsregionname": "Region 8",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 9,
+        "hhsregionname": "Region 9",
+        "isactive": 1
+      },
+      {
+        "hhsregionid": 10,
+        "hhsregionname": "Region 10",
+        "isactive": 1
+      }
+    ],
+    "labtypes": [
+      {
+        "labtypeid": 1,
+        "labname": "Public Health Labs"
+      },
+      {
+        "labtypeid": 2,
+        "labname": "Clinical Labs"
+      }
+    ],
+    "viruslist": [
+      {
+        "virusid": 1,
+        "description": "AH1N1",
+        "label": "A (H1)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 2,
+        "description": "AUNSUB",
+        "label": "A (Unable to Subtype)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 3,
+        "description": "AH3N2",
+        "label": "A (H3)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 4,
+        "description": "AH1SWINE",
+        "label": "A (H1N1)pdm09",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 5,
+        "description": "A-Unk",
+        "label": "A (Subtyping not Performed)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 6,
+        "description": "B",
+        "label": "B (Lineage Unspecified)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 7,
+        "description": "AH3N2v",
+        "label": "H3N2v",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 8,
+        "description": "BVic",
+        "label": "B (Victoria Lineage)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 9,
+        "description": "BYam",
+        "label": "B (Yamagata Lineage)",
+        "labtypeid": 1
+      },
+      {
+        "virusid": 10,
+        "description": "Total_A",
+        "label": "Total A",
+        "labtypeid": 2
+      },
+      {
+        "virusid": 11,
+        "description": "Total_B",
+        "label": "Total B",
+        "labtypeid": 2
+      },
+      {
+        "virusid": 12,
+        "description": "AH5",
+        "label": "A (H5)",
+        "labtypeid": 1
+      }
+    ]
+  }
+}

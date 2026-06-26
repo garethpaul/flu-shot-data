@@ -66,6 +66,14 @@ identity responses, strict UTF-8, reviewed media types, deterministic POST
 bodies, JSON-object roots, and HHS region identifiers 1 through 10. These
 functions do not change the legacy command or publish a partial `v2` schema.
 
+A minimized official phase 2 initialization fixture now records exact source
+provenance, and `parse_fluview_phase2_metadata()` produces validated FluView phase 2 metadata
+for the current enabled season, latest populated MMWR week,
+all ten canonical HHS regions, lab types, and virus categories. The decoder is
+order-independent and rejects duplicate identifiers, invalid dates and
+week/year metadata, incomplete region coverage, empty labels, and unknown lab
+references before later joins can consume them.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:

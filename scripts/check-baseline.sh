@@ -40,6 +40,8 @@ STAGING_CLEANUP_PLAN="$ROOT_DIR/docs/plans/2026-06-16-staging-cleanup-error-pres
 OUTPUT_TARGET_TYPE_PLAN="$ROOT_DIR/docs/plans/2026-06-17-output-target-type-preflight.md"
 FLUVIEW_TRANSPORT_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-source-transports-design.md"
 FLUVIEW_TRANSPORT_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-source-transports.md"
+FLUVIEW_METADATA_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-metadata-design.md"
+FLUVIEW_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-metadata.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -94,6 +96,9 @@ for path in \
   "docs/plans/2026-06-17-output-target-type-preflight.md" \
   "docs/plans/2026-06-26-fluview-source-transports-design.md" \
   "docs/plans/2026-06-26-fluview-source-transports.md" \
+  "docs/plans/2026-06-26-fluview-phase2-metadata-design.md" \
+  "docs/plans/2026-06-26-fluview-phase2-metadata.md" \
+  "tests/fixtures/fluview_phase2_init_2026-06-26.json" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -154,6 +159,90 @@ if 'csv_stage.open("w"' not in stage_writer or 'json_stage.open("w"' not in stag
     raise SystemExit("Complete output staging must write only invocation-owned stage paths.")
 if 'csv_output.open("w"' in source or 'json_output.open("w"' in source:
     raise SystemExit("Validated output destinations must not be opened directly for writing.")
+PY
+
+"$PYTHON" - \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$ROOT_DIR/tests/fixtures/fluview_phase2_init_2026-06-26.json" \
+  "$FLUVIEW_METADATA_DESIGN" \
+  "$FLUVIEW_METADATA_PLAN" \
+  "$ROOT_DIR/AGENTS.md" \
+  "$ROOT_DIR/README.md" \
+  "$ROOT_DIR/SECURITY.md" \
+  "$ROOT_DIR/VISION.md" \
+  "$ROOT_DIR/CHANGES.md" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+tests = Path(sys.argv[2]).read_text(encoding="utf-8")
+fixture = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+design = Path(sys.argv[4]).read_text(encoding="utf-8")
+plan = Path(sys.argv[5]).read_text(encoding="utf-8")
+docs = [Path(path).read_text(encoding="utf-8") for path in sys.argv[6:]]
+
+expected_provenance = {
+    "source_url": "https://gis.cdc.gov/grasp/flu2/GetPhase02InitApp?appVersion=Public",
+    "request_method": "GET",
+    "retrieved_at": "2026-06-26T21:52:37Z",
+    "response_content_type": "application/json; charset=utf-8",
+    "full_response_bytes": 357473,
+    "full_response_sha256": "63ae6be2711dbe7ddd500f2d8b31f25170c6e128395021f11b353443a130aa56",
+    "minimization": "Retains only fields consumed by parse_fluview_phase2_metadata.",
+}
+if fixture.get("provenance") != expected_provenance:
+    raise SystemExit("FluView phase 2 fixture must preserve exact official provenance.")
+
+response = fixture.get("response")
+expected_counts = {
+    "seasons": 2,
+    "mmwr": 4,
+    "hhsregion": 10,
+    "labtypes": 2,
+    "viruslist": 12,
+}
+if not isinstance(response, dict) or {
+    name: len(response.get(name, [])) for name in expected_counts
+} != expected_counts:
+    raise SystemExit("FluView phase 2 fixture must remain minimized and complete.")
+
+source_contracts = (
+    "def parse_fluview_phase2_metadata(",
+    "def _require_object_list(",
+    "def _require_positive_integer(",
+    "def _require_nonempty_string(",
+    'raise ValueError("FluView metadata contains a duplicate season identifier.")',
+    'raise ValueError("FluView metadata contains a duplicate MMWR identifier.")',
+    'raise ValueError("FluView metadata must contain active HHS regions 1 through 10.")',
+    'raise ValueError("FluView virus metadata must reference a known lab type.")',
+    'current_season_id = max(enabled_season_ids)',
+    'current_week = max(current_weeks, key=lambda item: item["week_id"])',
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("FluView phase 2 metadata decoder contracts are incomplete.")
+
+test_contracts = (
+    "test_fluview_phase2_fixture_records_exact_source_provenance",
+    "test_parse_fluview_phase2_metadata_normalizes_current_catalogs",
+    "test_parse_fluview_phase2_metadata_ignores_collection_order",
+    "test_parse_fluview_phase2_metadata_rejects_missing_or_non_list_collections",
+    "test_parse_fluview_phase2_metadata_rejects_duplicate_identifiers",
+    "test_parse_fluview_phase2_metadata_rejects_invalid_season_and_week_metadata",
+    "test_parse_fluview_phase2_metadata_rejects_invalid_catalogs",
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("FluView phase 2 metadata regressions must remain complete.")
+
+if "Status: Completed" not in design or "Status: Completed" not in plan:
+    raise SystemExit("FluView metadata design and implementation plans must be completed.")
+if "make check" not in plan:
+    raise SystemExit("FluView metadata plan must record make check verification.")
+
+guidance = "validated FluView phase 2 metadata"
+if any(guidance not in document for document in docs):
+    raise SystemExit("Project guidance must preserve validated FluView phase 2 metadata policy.")
 PY
 
 "$PYTHON" - \

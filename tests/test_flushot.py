@@ -1,4 +1,5 @@
 import csv
+import copy
 import json
 import os
 import stat
@@ -14,6 +15,9 @@ import flushot
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cdc_weekly_summary.html"
+FLUVIEW_PHASE2_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "fluview_phase2_init_2026-06-26.json"
+)
 
 
 def same_resolved_path(left, right):
@@ -58,6 +62,9 @@ class FakeOpener:
 
 
 class FluShotParserTests(unittest.TestCase):
+    def fluview_phase2_fixture(self):
+        return json.loads(FLUVIEW_PHASE2_FIXTURE.read_text(encoding="utf-8"))
+
     def test_parse_records_from_fixture(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
 
@@ -910,6 +917,146 @@ class FluShotParserTests(unittest.TestCase):
         self.assertEqual("GET", opener.request.get_method())
         self.assertEqual(flushot.FLUVIEW_PHASE4_INIT_URL, opener.request.full_url)
         self.assertIsNone(opener.request.data)
+
+    def test_fluview_phase2_fixture_records_exact_source_provenance(self):
+        fixture = self.fluview_phase2_fixture()
+
+        self.assertEqual(
+            {
+                "source_url": flushot.FLUVIEW_PHASE2_INIT_URL,
+                "request_method": "GET",
+                "retrieved_at": "2026-06-26T21:52:37Z",
+                "response_content_type": "application/json; charset=utf-8",
+                "full_response_bytes": 357473,
+                "full_response_sha256": (
+                    "63ae6be2711dbe7ddd500f2d8b31f25170c6e128395021f11b353443a130aa56"
+                ),
+                "minimization": (
+                    "Retains only fields consumed by "
+                    "parse_fluview_phase2_metadata."
+                ),
+            },
+            fixture["provenance"],
+        )
+
+    def test_parse_fluview_phase2_metadata_normalizes_current_catalogs(self):
+        payload = self.fluview_phase2_fixture()["response"]
+        original = copy.deepcopy(payload)
+
+        metadata = flushot.parse_fluview_phase2_metadata(payload)
+
+        self.assertEqual(payload, original)
+        self.assertEqual(65, metadata["season_id"])
+        self.assertEqual("2025-26", metadata["season_label"])
+        self.assertEqual(3364, metadata["week_id"])
+        self.assertEqual(24, metadata["week_number"])
+        self.assertEqual("2026-06-20", metadata["week_end"])
+        self.assertEqual(
+            {region_id: f"Region {region_id}" for region_id in range(1, 11)},
+            metadata["hhs_regions"],
+        )
+        self.assertEqual(
+            {1: "Public Health Labs", 2: "Clinical Labs"},
+            metadata["lab_types"],
+        )
+        self.assertEqual(
+            {
+                "description": "AH1SWINE",
+                "label": "A (H1N1)pdm09",
+                "lab_type_id": 1,
+            },
+            metadata["viruses"][4],
+        )
+        self.assertEqual(12, len(metadata["viruses"]))
+
+    def test_parse_fluview_phase2_metadata_ignores_collection_order(self):
+        payload = self.fluview_phase2_fixture()["response"]
+        expected = flushot.parse_fluview_phase2_metadata(payload)
+        reordered = copy.deepcopy(payload)
+        for collection in ("seasons", "mmwr", "hhsregion", "labtypes", "viruslist"):
+            reordered[collection].reverse()
+
+        self.assertEqual(expected, flushot.parse_fluview_phase2_metadata(reordered))
+
+    def test_parse_fluview_phase2_metadata_rejects_missing_or_non_list_collections(self):
+        for collection in ("seasons", "mmwr", "hhsregion", "labtypes", "viruslist"):
+            for replacement in (None, {}, "records", [1]):
+                payload = copy.deepcopy(self.fluview_phase2_fixture()["response"])
+                payload[collection] = replacement
+
+                with self.subTest(collection=collection, replacement=replacement):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        f"FluView {collection} must be an array of objects",
+                    ):
+                        flushot.parse_fluview_phase2_metadata(payload)
+
+        with self.assertRaisesRegex(ValueError, "metadata must be an object"):
+            flushot.parse_fluview_phase2_metadata([])
+
+    def test_parse_fluview_phase2_metadata_rejects_duplicate_identifiers(self):
+        cases = (
+            ("seasons", "seasonid", "season"),
+            ("mmwr", "mmwrid", "MMWR"),
+            ("hhsregion", "hhsregionid", "HHS region"),
+            ("labtypes", "labtypeid", "lab type"),
+            ("viruslist", "virusid", "virus"),
+        )
+        for collection, _, label in cases:
+            payload = copy.deepcopy(self.fluview_phase2_fixture()["response"])
+            payload[collection].append(copy.deepcopy(payload[collection][0]))
+
+            with self.subTest(collection=collection):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    f"duplicate {label} identifier",
+                ):
+                    flushot.parse_fluview_phase2_metadata(payload)
+
+    def test_parse_fluview_phase2_metadata_rejects_invalid_season_and_week_metadata(self):
+        mutations = (
+            (lambda payload: payload["seasons"][0].update(seasonid=True), "season identifier"),
+            (lambda payload: payload["seasons"][0].update(label=" "), "season label"),
+            (
+                lambda payload: [season.update(enabled=0) for season in payload["seasons"]],
+                "enabled season",
+            ),
+            (lambda payload: payload["mmwr"][-1].update(mmwrid=True), "MMWR identifier"),
+            (lambda payload: payload["mmwr"][-1].update(weeknumber=0), "week number"),
+            (lambda payload: payload["mmwr"][-1].update(weekend="June 20"), "ISO date"),
+            (lambda payload: payload["mmwr"][-1].update(yearweek=202625), "yearweek"),
+            (
+                lambda payload: [week.update(seasonid=64) for week in payload["mmwr"]],
+                "current enabled season",
+            ),
+        )
+        for mutate, message in mutations:
+            payload = copy.deepcopy(self.fluview_phase2_fixture()["response"])
+            mutate(payload)
+
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    flushot.parse_fluview_phase2_metadata(payload)
+
+    def test_parse_fluview_phase2_metadata_rejects_invalid_catalogs(self):
+        mutations = (
+            (lambda payload: payload["hhsregion"].pop(), "regions 1 through 10"),
+            (
+                lambda payload: payload["hhsregion"][0].update(hhsregionname="First"),
+                "canonical name",
+            ),
+            (lambda payload: payload["labtypes"][0].update(labname=" "), "lab type name"),
+            (lambda payload: payload["labtypes"].pop(0), "lab types 1 and 2"),
+            (lambda payload: payload["viruslist"][0].update(label=""), "virus label"),
+            (lambda payload: payload["viruslist"][0].update(labtypeid=9), "known lab type"),
+        )
+        for mutate, message in mutations:
+            payload = copy.deepcopy(self.fluview_phase2_fixture()["response"])
+            mutate(payload)
+
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    flushot.parse_fluview_phase2_metadata(payload)
 
     def test_fetch_fluview_phase2_region_data_uses_reviewed_post_body(self):
         expected = {"mmwr": [], "WHO_Virus_Counts_Summary_Cumulative": {}}
