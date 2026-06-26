@@ -12,6 +12,7 @@ import secrets
 import stat
 import sys
 from datetime import datetime
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from email.message import Message
 from html.parser import HTMLParser
 from pathlib import Path
@@ -34,6 +35,24 @@ FLUVIEW_PHASE4_INIT_URL = (
     "https://gis.cdc.gov/grasp/flu4/GetPhase04InitApp?appVersion=Public"
 )
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+FLUVIEW_ILINET_TITLE = (
+    "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS"
+)
+FLUVIEW_ILINET_HEADERS = (
+    "YEAR",
+    "WEEK",
+    "AGE 0-4",
+    "AGE 5-24",
+    "AGE 25-49",
+    "AGE 25-64",
+    "AGE 50-64",
+    "AGE 65",
+    "ILITOTAL",
+    "TOTAL PATIENTS",
+    "NUM. OF PROVIDERS",
+    "%UNWEIGHTED ILI",
+    "% WEIGHTED ILI",
+)
 
 
 def _fluview_phase2_region_data_structure() -> list:
@@ -515,6 +534,125 @@ def fetch_fluview_phase4_init(
         max_bytes,
     )
     return _decode_json_object(body)
+
+
+def _parse_fluview_csv_integer(value: str, label: str, minimum: int = 0) -> int:
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]+", value):
+        raise ValueError(f"FluView {label} must be an ASCII-decimal integer.")
+    parsed = int(value)
+    if parsed < minimum:
+        raise ValueError(f"FluView {label} must be at least {minimum}.")
+    return parsed
+
+
+def _parse_fluview_csv_percentage(value: str, label: str) -> Decimal:
+    if (
+        not isinstance(value, str)
+        or len(value) > 32
+        or not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value)
+    ):
+        raise ValueError(f"FluView {label} must be a decimal percentage.")
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation:
+        raise ValueError(f"FluView {label} must be a decimal percentage.") from None
+    if not parsed.is_finite() or not Decimal(0) <= parsed <= Decimal(100):
+        raise ValueError(f"FluView {label} must be between zero and 100.")
+    return parsed
+
+
+def parse_fluview_phase2_line_csv(
+    csv_text: str,
+    season_id: int,
+    region_id: int,
+) -> dict:
+    season_id = _validate_positive_season_id(season_id)
+    region_id = _validate_hhs_region_id(region_id)
+    if not isinstance(csv_text, str):
+        raise ValueError("FluView ILINet CSV must be text.")
+
+    rows = list(csv.reader(csv_text.splitlines()))
+    if len(rows) < 3 or rows[0] != [FLUVIEW_ILINET_TITLE]:
+        raise ValueError("FluView ILINet CSV must contain the reviewed title row.")
+    if tuple(rows[1]) != FLUVIEW_ILINET_HEADERS:
+        raise ValueError("FluView ILINet CSV headers do not match the reviewed schema.")
+
+    weeks = {}
+    for row in rows[2:]:
+        if len(row) != len(FLUVIEW_ILINET_HEADERS):
+            raise ValueError("FluView ILINet CSV data rows must contain 13 fields.")
+        values = dict(zip(FLUVIEW_ILINET_HEADERS, row))
+        year = _parse_fluview_csv_integer(values["YEAR"], "ILINet year", 1900)
+        if year > 9999:
+            raise ValueError("FluView ILINet year must be a four-digit integer.")
+        week_number = _parse_fluview_csv_integer(values["WEEK"], "ILINet week", 1)
+        if week_number > 53:
+            raise ValueError("FluView ILINet week must be between 1 and 53.")
+        yearweek = year * 100 + week_number
+        if yearweek in weeks:
+            raise ValueError("FluView ILINet CSV contains a duplicate yearweek.")
+        if values["AGE 25-64"] != "":
+            raise ValueError("FluView ILINet AGE 25-64 must remain empty.")
+
+        age_0_4 = _parse_fluview_csv_integer(values["AGE 0-4"], "age 0-4 count")
+        age_5_24 = _parse_fluview_csv_integer(values["AGE 5-24"], "age 5-24 count")
+        age_25_49 = _parse_fluview_csv_integer(values["AGE 25-49"], "age 25-49 count")
+        age_50_64 = _parse_fluview_csv_integer(values["AGE 50-64"], "age 50-64 count")
+        age_65_plus = _parse_fluview_csv_integer(values["AGE 65"], "age 65 count")
+        ili_total = _parse_fluview_csv_integer(values["ILITOTAL"], "ILI total")
+        total_patients = _parse_fluview_csv_integer(
+            values["TOTAL PATIENTS"],
+            "total patients",
+            1,
+        )
+        provider_count = _parse_fluview_csv_integer(
+            values["NUM. OF PROVIDERS"],
+            "provider count",
+            1,
+        )
+        if sum((age_0_4, age_5_24, age_25_49, age_50_64, age_65_plus)) != ili_total:
+            raise ValueError("FluView ILINet age counts must sum to ILI total.")
+        if ili_total > total_patients:
+            raise ValueError("FluView ILINet ILI total cannot exceed total patients.")
+
+        unweighted_ili = _parse_fluview_csv_percentage(
+            values["%UNWEIGHTED ILI"],
+            "unweighted ILI",
+        )
+        weighted_ili = _parse_fluview_csv_percentage(
+            values["% WEIGHTED ILI"],
+            "weighted ILI",
+        )
+        decimal_places = max(0, -unweighted_ili.as_tuple().exponent)
+        displayed_precision = Decimal(1).scaleb(-decimal_places)
+        calculated_unweighted = (
+            Decimal(ili_total) * Decimal(100) / Decimal(total_patients)
+        ).quantize(displayed_precision, rounding=ROUND_HALF_UP)
+        if calculated_unweighted != unweighted_ili:
+            raise ValueError(
+                "FluView ILINet unweighted ILI must match ILI and patient totals."
+            )
+
+        weeks[yearweek] = {
+            "year": year,
+            "week_number": week_number,
+            "age_0_4": age_0_4,
+            "age_5_24": age_5_24,
+            "age_25_49": age_25_49,
+            "age_50_64": age_50_64,
+            "age_65_plus": age_65_plus,
+            "ili_total": ili_total,
+            "total_patients": total_patients,
+            "provider_count": provider_count,
+            "unweighted_ili": float(unweighted_ili),
+            "weighted_ili": float(weighted_ili),
+        }
+
+    return {
+        "season_id": season_id,
+        "region_id": region_id,
+        "weeks": dict(sorted(weeks.items())),
+    }
 
 
 def _require_object_list(payload: dict, name: str) -> list[dict]:

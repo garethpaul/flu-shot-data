@@ -47,6 +47,10 @@ Helpful reports include:
   closed on declared-structure drift, malformed positional rows, missing labs
   or regions, virus-catalog disagreement, invalid count relationships,
   non-finite or out-of-range metrics, and non-binary source flags.
+- Treat only validated FluView ILINet CSV data as provider and visit-count
+  authority. Require the exact reviewed envelope, unique yearweeks, strict
+  decimal text, reserved-column emptiness, age-total arithmetic, positive
+  patient/provider counts, and bounded percentage precision.
 - Live CDC fetch URLs reject every explicit port before network request construction or redirect handling.
 - Fetch timeouts should be bounded before network requests are opened so invalid
   or excessive caller-provided values do not control live request behavior.
