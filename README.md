@@ -82,6 +82,13 @@ health and clinical labs, HHS regions, national records, virus-count windows,
 ILI metrics, and source flags separately. It does not select or publish the
 future `v2` schema.
 
+The official ILINet CSV now has its own minimized provenance fixture and strict
+decoder. `parse_fluview_phase2_line_csv()` produces a typed source model.
+This is validated FluView ILINet CSV data keyed by MMWR year/week with age-group
+visits, total ILI visits, total patients, provider counts, and
+weighted/unweighted ILI. Provider counts remain explicitly distinct from the
+retired `NUM_JURIS` field, and no cross-source join is implied.
+
 The command below still documents the legacy entry point, but currently fails
 before output publication because the retired CDC URL no longer returns the
 expected summary page:

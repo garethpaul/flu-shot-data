@@ -1,5 +1,75 @@
 # Changes
 
+## 2026-06-26 15:16 PDT - P1 - Decode FluView ILINet CSV data
+
+### Summary
+
+Recorded a minimized official ILINet line-chart fixture and added strict typed
+decoding of truthful regional provider, visit, patient, and ILI values for
+issue #24 without changing the legacy default or joining sources prematurely.
+
+### Work completed
+
+- Recorded the exact POST body, retrieval time, response media type, full
+  2,583-byte response length, and SHA-256 provenance.
+- Retained the exact report title/header plus first, year-boundary, and current
+  rows in a compact fixture.
+- Added exact envelope, identifier, duplicate, numeric text, reserved-column,
+  age-total, patient/provider, percentage, and displayed-precision validation.
+- Added a stable `yearweek`-keyed source model with five age-group counts,
+  total ILI visits, total patients, provider count, and weighted/unweighted ILI.
+- Preserved the decision that provider counts are not legacy jurisdiction
+  counts and deferred all cross-source joins to the versioned `v2` stage.
+
+### Threads
+
+- None; this stage follows the merged regional source decoder.
+
+### Files changed
+
+- `tests/fixtures/fluview_phase2_line_region1_2026-06-26.json` — minimized
+  official CSV text and exact provenance.
+- `flushot.py` — exact ILINet CSV envelope and typed row decoder.
+- `tests/test_flushot.py` — provenance, normalization, order, envelope,
+  identifier, numeric, arithmetic, and precision regressions.
+- `scripts/check-baseline.sh` — durable fixture and decoder contracts.
+- `AGENTS.md`, `README.md`, `SECURITY.md`, and `VISION.md` — maintained
+  validated FluView ILINet CSV data policy and roadmap.
+- `docs/plans/2026-06-26-fluview-ilinet-csv-decoder-design.md` — design record.
+- `docs/plans/2026-06-26-fluview-ilinet-csv-decoder.md` — implementation record.
+
+### Validation
+
+- RED focused suite — five tests produced 18 expected errors on the missing
+  decoder.
+- RED precision regression — excessive decimal precision escaped as
+  `decimal.InvalidOperation` before the parser bounded source text.
+- GREEN focused/full suites — all 98 tests passed.
+- Live source smoke — decoded all 38 rows from yearweek 202540 through 202624;
+  the current Region 1 provider count is 270.
+- `make check`, `make lint`, `make test`, `make build`, repository-root Make,
+  and absolute-Makefile verification from `/tmp` — passed.
+- Ten isolated hostile provenance, fixture envelope, row completeness, source,
+  output, regression, guidance, and plan mutations — all rejected.
+- JSON syntax, in-memory Python compilation, shell syntax, current-tree
+  gitleaks, and `git diff --check` — passed with no findings.
+
+### Bugs / findings
+
+- The official CSV includes both `AGE 25-49` and an empty `AGE 25-64` column;
+  the populated non-overlapping age groups sum to `ILITOTAL`.
+- P1 live generation still requires the phase 4 mortality decoder, complete
+  `v2` schema, explicit joins, and publication wiring.
+
+### Blockers
+
+- None for this ILINet decoding stage.
+
+### Next action
+
+- Record and decode the phase 4 national pediatric mortality source before
+  defining the final `v2` contract and joins.
+
 ## 2026-06-26 15:01 PDT - P1 - Decode FluView phase 2 regional data
 
 ### Summary

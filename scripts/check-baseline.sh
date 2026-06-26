@@ -44,6 +44,8 @@ FLUVIEW_METADATA_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-metadata
 FLUVIEW_METADATA_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-metadata.md"
 FLUVIEW_REGIONAL_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-regional-decoder-design.md"
 FLUVIEW_REGIONAL_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-phase2-regional-decoder.md"
+FLUVIEW_ILINET_DESIGN="$ROOT_DIR/docs/plans/2026-06-26-fluview-ilinet-csv-decoder-design.md"
+FLUVIEW_ILINET_PLAN="$ROOT_DIR/docs/plans/2026-06-26-fluview-ilinet-csv-decoder.md"
 CI_PLAN="$ROOT_DIR/docs/plans/2026-06-10-ci-baseline.md"
 CI_WORKFLOW="$ROOT_DIR/.github/workflows/check.yml"
 CODEOWNERS="$ROOT_DIR/.github/CODEOWNERS"
@@ -104,6 +106,9 @@ for path in \
   "docs/plans/2026-06-26-fluview-phase2-regional-decoder-design.md" \
   "docs/plans/2026-06-26-fluview-phase2-regional-decoder.md" \
   "tests/fixtures/fluview_phase2_region_2026-06-26.json" \
+  "docs/plans/2026-06-26-fluview-ilinet-csv-decoder-design.md" \
+  "docs/plans/2026-06-26-fluview-ilinet-csv-decoder.md" \
+  "tests/fixtures/fluview_phase2_line_region1_2026-06-26.json" \
   "docs/plans/2026-06-10-ci-baseline.md" \
   "docs/plans/2026-06-09-flu-shot-fetch-url-parts-guard.md" \
   "docs/plans/2026-06-09-flu-shot-summary-row-skip.md" \
@@ -361,6 +366,105 @@ if "make check" not in plan:
 guidance = "validated FluView phase 2 regional data"
 if any(guidance not in document for document in docs):
     raise SystemExit("Project guidance must preserve validated regional data policy.")
+PY
+
+"$PYTHON" - \
+  "$ROOT_DIR/flushot.py" \
+  "$ROOT_DIR/tests/test_flushot.py" \
+  "$ROOT_DIR/tests/fixtures/fluview_phase2_line_region1_2026-06-26.json" \
+  "$FLUVIEW_ILINET_DESIGN" \
+  "$FLUVIEW_ILINET_PLAN" \
+  "$ROOT_DIR/AGENTS.md" \
+  "$ROOT_DIR/README.md" \
+  "$ROOT_DIR/SECURITY.md" \
+  "$ROOT_DIR/VISION.md" \
+  "$ROOT_DIR/CHANGES.md" <<'PY'
+import csv
+import io
+import json
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+tests = Path(sys.argv[2]).read_text(encoding="utf-8")
+fixture = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+design = Path(sys.argv[4]).read_text(encoding="utf-8")
+plan = Path(sys.argv[5]).read_text(encoding="utf-8")
+docs = [Path(path).read_text(encoding="utf-8") for path in sys.argv[6:]]
+
+expected_provenance = {
+    "source_url": "https://gis.cdc.gov/grasp/flu2/PostPhase02LineChartDataDownload",
+    "request_method": "POST",
+    "request_body": {
+        "AppVersion": "Public",
+        "DatasourceDT": [{"ID": 1, "Name": "ILINet"}],
+        "RegionTypeId": 1,
+        "SubRegionsDT": [{"ID": 1, "Name": "1"}],
+        "SeasonsDT": [{"ID": 65, "Name": "65"}],
+    },
+    "retrieved_at": "2026-06-26T22:15:04Z",
+    "response_content_type": "application/octet-stream",
+    "full_response_bytes": 2583,
+    "full_response_sha256": "985493ce04d949f06ac66d846b9bf56e513711bf362c3c00b6f0241448115128",
+    "minimization": (
+        "Retains the exact title and header plus first, year-boundary, and current "
+        "rows consumed by parse_fluview_phase2_line_csv."
+    ),
+}
+if fixture.get("provenance") != expected_provenance:
+    raise SystemExit("FluView ILINet fixture must preserve exact official provenance.")
+
+response_text = fixture.get("response_text")
+rows = list(csv.reader(io.StringIO(response_text))) if isinstance(response_text, str) else []
+if len(rows) != 6 or rows[0] != [
+    "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS"
+]:
+    raise SystemExit("FluView ILINet fixture must preserve its minimized title and rows.")
+if rows[1] != [
+    "YEAR", "WEEK", "AGE 0-4", "AGE 5-24", "AGE 25-49", "AGE 25-64",
+    "AGE 50-64", "AGE 65", "ILITOTAL", "TOTAL PATIENTS",
+    "NUM. OF PROVIDERS", "%UNWEIGHTED ILI", "% WEIGHTED ILI",
+]:
+    raise SystemExit("FluView ILINet fixture must preserve the exact reviewed header.")
+if {row[0:2][0] + row[0:2][1].zfill(2) for row in rows[2:]} != {
+    "202540", "202553", "202601", "202624"
+}:
+    raise SystemExit("FluView ILINet fixture must preserve representative yearweeks.")
+
+source_contracts = (
+    "FLUVIEW_ILINET_TITLE = (",
+    "FLUVIEW_ILINET_HEADERS = (",
+    "def parse_fluview_phase2_line_csv(",
+    "def _parse_fluview_csv_integer(",
+    "def _parse_fluview_csv_percentage(",
+    'if values["AGE 25-64"] != "":',
+    'if sum((age_0_4, age_5_24, age_25_49, age_50_64, age_65_plus)) != ili_total:',
+    'if ili_total > total_patients:',
+    'if calculated_unweighted != unweighted_ili:',
+    '"provider_count": provider_count',
+)
+if any(contract not in source for contract in source_contracts):
+    raise SystemExit("FluView ILINet CSV decoder contracts are incomplete.")
+
+test_contracts = (
+    "test_fluview_phase2_line_fixture_records_exact_source_provenance",
+    "test_parse_fluview_phase2_line_csv_normalizes_provider_and_visit_counts",
+    "test_parse_fluview_phase2_line_csv_ignores_data_row_order",
+    "test_parse_fluview_phase2_line_csv_rejects_envelope_drift",
+    "test_parse_fluview_phase2_line_csv_rejects_invalid_rows",
+    "test_parse_fluview_phase2_line_csv_rejects_invalid_identifiers",
+)
+if any(contract not in tests for contract in test_contracts):
+    raise SystemExit("FluView ILINet CSV decoder regressions must remain complete.")
+
+if "Status: Completed" not in design or "Status: Completed" not in plan:
+    raise SystemExit("FluView ILINet decoder plans must be completed.")
+if "make check" not in plan:
+    raise SystemExit("FluView ILINet decoder plan must record make check verification.")
+
+guidance = "validated FluView ILINet CSV data"
+if any(guidance not in document for document in docs):
+    raise SystemExit("Project guidance must preserve validated ILINet CSV policy.")
 PY
 
 "$PYTHON" - \

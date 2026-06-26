@@ -21,6 +21,11 @@ FLUVIEW_PHASE2_FIXTURE = (
 FLUVIEW_PHASE2_REGION_FIXTURE = (
     Path(__file__).parent / "fixtures" / "fluview_phase2_region_2026-06-26.json"
 )
+FLUVIEW_PHASE2_LINE_FIXTURE = (
+    Path(__file__).parent
+    / "fixtures"
+    / "fluview_phase2_line_region1_2026-06-26.json"
+)
 
 
 def same_resolved_path(left, right):
@@ -77,6 +82,9 @@ class FluShotParserTests(unittest.TestCase):
         return flushot.parse_fluview_phase2_metadata(
             self.fluview_phase2_fixture()["response"]
         )
+
+    def fluview_phase2_line_fixture(self):
+        return json.loads(FLUVIEW_PHASE2_LINE_FIXTURE.read_text(encoding="utf-8"))
 
     def test_parse_records_from_fixture(self):
         records = flushot.parse_records(FIXTURE.read_text(encoding="utf-8"))
@@ -1313,6 +1321,120 @@ class FluShotParserTests(unittest.TestCase):
             b'"SubRegionsDT":[{"ID":3,"Name":"3"}]}',
             opener.request.data,
         )
+
+    def test_fluview_phase2_line_fixture_records_exact_source_provenance(self):
+        fixture = self.fluview_phase2_line_fixture()
+
+        self.assertEqual(
+            {
+                "source_url": flushot.FLUVIEW_PHASE2_LINE_CSV_URL,
+                "request_method": "POST",
+                "request_body": {
+                    "AppVersion": "Public",
+                    "DatasourceDT": [{"ID": 1, "Name": "ILINet"}],
+                    "RegionTypeId": 1,
+                    "SubRegionsDT": [{"ID": 1, "Name": "1"}],
+                    "SeasonsDT": [{"ID": 65, "Name": "65"}],
+                },
+                "retrieved_at": "2026-06-26T22:15:04Z",
+                "response_content_type": "application/octet-stream",
+                "full_response_bytes": 2583,
+                "full_response_sha256": (
+                    "985493ce04d949f06ac66d846b9bf56e513711bf362c3c00b6f0241448115128"
+                ),
+                "minimization": (
+                    "Retains the exact title and header plus first, "
+                    "year-boundary, and current rows consumed by "
+                    "parse_fluview_phase2_line_csv."
+                ),
+            },
+            fixture["provenance"],
+        )
+
+    def test_parse_fluview_phase2_line_csv_normalizes_provider_and_visit_counts(self):
+        source = self.fluview_phase2_line_fixture()["response_text"]
+
+        decoded = flushot.parse_fluview_phase2_line_csv(source, 65, 1)
+
+        self.assertEqual(65, decoded["season_id"])
+        self.assertEqual(1, decoded["region_id"])
+        self.assertEqual([202540, 202553, 202601, 202624], list(decoded["weeks"]))
+        current = decoded["weeks"][202624]
+        self.assertEqual(2026, current["year"])
+        self.assertEqual(24, current["week_number"])
+        self.assertEqual(217, current["age_0_4"])
+        self.assertEqual(349, current["age_5_24"])
+        self.assertEqual(303, current["age_25_49"])
+        self.assertEqual(148, current["age_50_64"])
+        self.assertEqual(208, current["age_65_plus"])
+        self.assertEqual(1225, current["ili_total"])
+        self.assertEqual(162510, current["total_patients"])
+        self.assertEqual(270, current["provider_count"])
+        self.assertEqual(0.7538, current["unweighted_ili"])
+        self.assertEqual(0.7318, current["weighted_ili"])
+        self.assertEqual(
+            "PERCENTAGE OF VISITS FOR INFLUENZA-LIKE-ILLNESS REPORTED BY SENTINEL PROVIDERS",
+            source.splitlines()[0],
+        )
+
+    def test_parse_fluview_phase2_line_csv_ignores_data_row_order(self):
+        source = self.fluview_phase2_line_fixture()["response_text"]
+        lines = source.splitlines()
+        reordered = "\n".join(lines[:2] + list(reversed(lines[2:]))) + "\n"
+
+        self.assertEqual(
+            flushot.parse_fluview_phase2_line_csv(source, 65, 1),
+            flushot.parse_fluview_phase2_line_csv(reordered, 65, 1),
+        )
+
+    def test_parse_fluview_phase2_line_csv_rejects_envelope_drift(self):
+        source = self.fluview_phase2_line_fixture()["response_text"]
+        mutations = (
+            source.replace("PERCENTAGE OF VISITS", "VISITS", 1),
+            source.replace("NUM. OF PROVIDERS", "JURISDICTIONS", 1),
+            source + "\n",
+            source.replace("2026,24,", "2025,40,", 1),
+        )
+
+        with self.assertRaises(ValueError):
+            flushot.parse_fluview_phase2_line_csv([], 65, 1)
+        for mutated in mutations:
+            with self.subTest(mutated=mutated):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_line_csv(mutated, 65, 1)
+
+    def test_parse_fluview_phase2_line_csv_rejects_invalid_rows(self):
+        source = self.fluview_phase2_line_fixture()["response_text"]
+        mutations = (
+            source.replace("2025,40,", "year,40,", 1),
+            source.replace("2025,40,", "1899,40,", 1),
+            source.replace("2025,40,", "2025,54,", 1),
+            source.replace("505,,217", "505,1,217", 1),
+            source.replace("263,549,505", "-1,549,505", 1),
+            source.replace("1850,168814", "1851,168814", 1),
+            source.replace("1850,168814", "1850,1000", 1),
+            source.replace("168814,280", "168814,0", 1),
+            source.replace("1.09588,1.08073", "1.0,1.08073", 1),
+            source.replace("1.09588,1.08073", "1.09588,NaN", 1),
+            source.replace("1.09588,1.08073", f"0.{('1' * 100)},1.08073", 1),
+        )
+
+        for mutated in mutations:
+            with self.subTest(mutated=mutated):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_line_csv(mutated, 65, 1)
+
+    def test_parse_fluview_phase2_line_csv_rejects_invalid_identifiers(self):
+        source = self.fluview_phase2_line_fixture()["response_text"]
+
+        for season_id, region_id in ((True, 1), (0, 1), (65, True), (65, 0), (65, 11)):
+            with self.subTest(season_id=season_id, region_id=region_id):
+                with self.assertRaises(ValueError):
+                    flushot.parse_fluview_phase2_line_csv(
+                        source,
+                        season_id,
+                        region_id,
+                    )
 
     def test_fluview_post_transports_reject_invalid_identifiers_before_network(self):
         invalid_seasons = (True, 0, -1, "65", 1.5)
